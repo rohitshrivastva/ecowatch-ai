@@ -22,6 +22,9 @@ class Settings(BaseSettings):
         "https://ecowatch.ai.vercel.app",
         "https://ecowatch-ai-rohitshivastva.vercel.app",
         "https://ecowatch-ai-ten.vercel.app",
+        "ecowatch.cloud",
+        "https://ecowatch.cloud",
+        "https://www.ecowatch.cloud"
     ]
 
     class Config:

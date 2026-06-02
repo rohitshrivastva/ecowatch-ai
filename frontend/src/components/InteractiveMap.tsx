@@ -33,12 +33,14 @@ interface InteractiveMapProps {
   onLocationSelect: (selection: LocationSelection) => void;
   selectedLocation?: LocationSelection | null;
   loading?: boolean;
+  detectingLocation?: boolean;
 }
 
 export default function InteractiveMap({
   onLocationSelect,
   selectedLocation,
   loading,
+  detectingLocation,
 }: InteractiveMapProps) {
   const [searchQuery, setSearchQuery] = useState("");
   const [drawMode, setDrawMode] = useState(false);
@@ -46,6 +48,12 @@ export default function InteractiveMap({
   const [drawBounds, setDrawBounds] = useState<L.LatLngBounds | null>(null);
   const [mapCenter, setMapCenter] = useState<[number, number]>(defaultCenter);
   const searchTimeout = useRef<NodeJS.Timeout>();
+
+  useEffect(() => {
+    if (selectedLocation) {
+      setMapCenter([selectedLocation.latitude, selectedLocation.longitude]);
+    }
+  }, [selectedLocation]);
 
   const handleSelect = useCallback(
     (lat: number, lng: number, name?: string) => {
@@ -141,9 +149,9 @@ export default function InteractiveMap({
           <Square className="w-4 h-4" />
           {drawMode ? "Click corners to draw" : "Draw Area"}
         </button>
-        {loading && (
+        {(detectingLocation || loading) && (
           <span className="text-sm text-eco-primary animate-pulse">
-            Analyzing...
+            {detectingLocation ? "Detecting location..." : "Analyzing..."}
           </span>
         )}
       </div>

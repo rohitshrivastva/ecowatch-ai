@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useCallback } from "react";
+import { useState, useCallback, useEffect, useRef } from "react";
 import dynamic from "next/dynamic";
 import {
   Wind,
@@ -11,6 +11,7 @@ import {
   TreePine,
   Waves,
   Flame,
+  Loader2,
 } from "lucide-react";
 import MetricCard from "@/components/MetricCard";
 import RiskGauge from "@/components/RiskGauge";
@@ -38,8 +39,10 @@ function aqiStatus(aqi: number): "good" | "moderate" | "warning" | "danger" {
 export default function Dashboard() {
   const [analysis, setAnalysis] = useState<EnvironmentalAnalysis | null>(null);
   const [loading, setLoading] = useState(false);
+  const [detectingLocation, setDetectingLocation] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [selection, setSelection] = useState<LocationSelection | null>(null);
+  const geoAbortRef = useRef(false);
 
   const handleLocationSelect = useCallback(async (loc: LocationSelection) => {
     setSelection(loc);
@@ -58,12 +61,71 @@ export default function Dashboard() {
     }
   }, []);
 
+  useEffect(() => {
+    geoAbortRef.current = false;
+
+    if (typeof navigator === "undefined" || !navigator.geolocation) {
+      setDetectingLocation(false);
+      return;
+    }
+
+    const failSafeTimer = window.setTimeout(() => {
+      if (!geoAbortRef.current) setDetectingLocation(false);
+    }, 20000);
+
+    navigator.geolocation.getCurrentPosition(
+      (position) => {
+        if (geoAbortRef.current) return;
+
+        const { latitude, longitude } = position.coords;
+        setDetectingLocation(false);
+
+        void (async () => {
+          let name = "Your location";
+          try {
+            const controller = new AbortController();
+            const nominatimTimer = window.setTimeout(() => controller.abort(), 5000);
+            const geoResp = await fetch(
+              `https://nominatim.openstreetmap.org/reverse?format=json&lat=${latitude}&lon=${longitude}`,
+              {
+                headers: { "Accept-Language": "en" },
+                signal: controller.signal,
+              }
+            );
+            window.clearTimeout(nominatimTimer);
+            if (geoResp.ok) {
+              const geoData = await geoResp.json();
+              if (typeof geoData.display_name === "string") {
+                name = geoData.display_name;
+              }
+            }
+          } catch {
+            /* use default name */
+          }
+
+          if (geoAbortRef.current) return;
+          await handleLocationSelect({ latitude, longitude, name });
+        })();
+      },
+      () => {
+        if (!geoAbortRef.current) setDetectingLocation(false);
+      },
+      { enableHighAccuracy: false, timeout: 15000, maximumAge: 300000 }
+    );
+
+    return () => {
+      geoAbortRef.current = true;
+      window.clearTimeout(failSafeTimer);
+    };
+  }, [handleLocationSelect]);
+
   return (
     <div className="space-y-6">
       <InteractiveMap
         onLocationSelect={handleLocationSelect}
         selectedLocation={selection}
         loading={loading}
+        detectingLocation={detectingLocation}
       />
 
       {error && (
@@ -73,7 +135,20 @@ export default function Dashboard() {
         </div>
       )}
 
-      {!analysis && !loading && !error && (
+      {detectingLocation && !analysis && (
+        <div className="glass-panel p-12 text-center">
+          <Loader2 className="w-12 h-12 text-eco-primary mx-auto mb-4 animate-spin" />
+          <h3 className="text-lg font-semibold text-eco-text mb-2">
+            Detecting your location
+          </h3>
+          <p className="text-eco-muted text-sm max-w-md mx-auto">
+            Allow location access in your browser to load environmental data for
+            where you are now.
+          </p>
+        </div>
+      )}
+
+      {!analysis && !loading && !detectingLocation && !error && (
         <div className="glass-panel p-12 text-center">
           <Leaf className="w-12 h-12 text-eco-primary mx-auto mb-4 opacity-50" />
           <h3 className="text-lg font-semibold text-eco-text mb-2">
