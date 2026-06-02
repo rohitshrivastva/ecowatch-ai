@@ -2,6 +2,11 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import { fetchHeatmap } from "@/lib/intelligence-api";
+import {
+  getCachedHeatmap,
+  heatmapCacheKey,
+  setCachedHeatmap,
+} from "@/lib/heatmap-cache";
 import { clampIntensity } from "@/lib/heatmap-config";
 import {
   densifyHeatmapPoints,
@@ -109,14 +114,26 @@ export function useHeatmap() {
       setLastBounds(bounds);
 
       try {
-        const data = await fetchHeatmap(
+        const cacheKey = heatmapCacheKey(
           type,
-          bounds,
-          bounds.zoom,
-          controller.signal,
-          focal?.lat,
-          focal?.lng
+          bounds.north,
+          bounds.south,
+          bounds.east,
+          bounds.west,
+          bounds.zoom
         );
+        let data = getCachedHeatmap(cacheKey);
+        if (!data) {
+          data = await fetchHeatmap(
+            type,
+            bounds,
+            bounds.zoom,
+            controller.signal,
+            focal?.lat,
+            focal?.lng
+          );
+          setCachedHeatmap(cacheKey, data);
+        }
         if (id !== requestIdRef.current) return;
 
         const sanitized = sanitizePoints(data.points);

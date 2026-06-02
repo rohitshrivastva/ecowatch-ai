@@ -53,3 +53,34 @@ body {
 .glass-panel {
   @apply bg-eco-surface/80 backdrop-blur-xl border border-eco-border rounded-xl;
 }
+
+.hero-panel {
+  @apply rounded-2xl border border-eco-border/80 bg-gradient-to-br from-eco-surface/90 via-eco-surface/80 to-eco-bg/90 backdrop-blur-xl;
+  box-shadow:
+    0 0 0 1px rgba(16, 185, 129, 0.08),
+    0 20px 50px -20px rgba(0, 0, 0, 0.5);
+}
+
+@keyframes env-pulse {
+  0%, 100% { transform: scale(1); opacity: 0.5; }
+  50% { transform: scale(1.15); opacity: 0.25; }
+}
+
+@keyframes env-float {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-4px); }
+}
+
+@keyframes env-gradient {
+  0% { background-position: 0% 50%; }
+  50% { background-position: 100% 50%; }
+  100% { background-position: 0% 50%; }
+}
+
+.animate-env-pulse {
+  animation: env-pulse 2.5s ease-in-out infinite;
+}
+
+.animate-env-float {
+  animation: env-float 3s ease-in-out infinite;
+}

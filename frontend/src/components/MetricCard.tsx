@@ -1,3 +1,4 @@
+import { memo } from "react";
 import clsx from "clsx";
 import type { LucideIcon } from "lucide-react";
 
@@ -18,7 +19,7 @@ const statusColors = {
   danger: "text-eco-danger border-eco-danger/30",
 };
 
-export default function MetricCard({
+function MetricCard({
   title,
   value,
   unit,
@@ -51,3 +52,5 @@ export default function MetricCard({
     </div>
   );
 }
+
+export default memo(MetricCard);

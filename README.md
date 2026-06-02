@@ -62,6 +62,14 @@ npm install
 npm run dev
 ```
 
+- Marketing site: [http://localhost:3000/](http://localhost:3000/)
+- Dashboard app: [http://localhost:3000/app](http://localhost:3000/app)
+
+Optional env for production CTAs and subdomain routing:
+
+- `NEXT_PUBLIC_APP_URL` — e.g. `https://app.ecowatchai.com` (used by landing CTAs)
+- Middleware rewrites `app.ecowatchai.com/` → `/app` when deployed on the same Next.js host
+
 ## MVP Features
 
 - Interactive map with location search and area selection

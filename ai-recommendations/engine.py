@@ -9,97 +9,90 @@ RULE_TEMPLATES = [
         "condition": lambda d: d["pollution"]["aqi"] > 150 and d["environmental"]["ndvi"] < 0.3,
         "category": "plantation",
         "priority": "critical",
-        "title": "Critical Air Quality & Low Vegetation",
+        "title": "Poor air quality and low greenery",
         "description": (
-            "Vegetation density is critically low and AQI is unhealthy. "
-            "Recommended actions include increasing roadside plantation using "
-            "neem and ashoka trees and adding rooftop gardens."
+            "This area has unhealthy air and very little vegetation. "
+            "Roadside trees and rooftop greenery can cut pollution and heat."
         ),
         "actions": [
             "Plant native trees (neem, ashoka, peepal) along major roads",
-            "Establish rooftop gardens on commercial buildings",
+            "Add rooftop gardens on commercial buildings",
             "Create green buffers between industrial and residential zones",
-            "Install vertical gardens on building facades",
         ],
     },
     {
         "condition": lambda d: d["environmental"]["urban_heat_index"] > 1.3,
         "category": "urban_cooling",
         "priority": "high",
-        "title": "Urban Heat Island Detected",
+        "title": "Urban heat island",
         "description": (
-            "This area shows significant urban heat island effect. "
-            "Cooling strategies are urgently needed to reduce heat stress."
+            "Built-up surfaces are trapping heat. Shade and reflective roofs "
+            "will lower temperatures for people nearby."
         ),
         "actions": [
-            "Increase tree canopy cover to 30%+ in urban areas",
-            "Install cool/roof reflective coatings on buildings",
-            "Create shaded pedestrian corridors",
-            "Add water features and misting stations in public spaces",
+            "Increase tree canopy cover toward 30% in dense blocks",
+            "Use cool or reflective roof coatings on large buildings",
+            "Add shaded walkways and water features in public spaces",
         ],
     },
     {
         "condition": lambda d: d["pollution"]["aqi"] > 100,
         "category": "pollution_reduction",
         "priority": "high",
-        "title": "Elevated Air Pollution Levels",
+        "title": "Elevated air pollution",
         "description": (
-            "Air quality index exceeds healthy thresholds. "
-            "Immediate pollution reduction measures are recommended."
+            "Air quality is above healthy limits. Traffic and emissions "
+            "controls during busy hours will help fastest."
         ),
         "actions": [
-            "Restrict heavy vehicle traffic during peak hours",
-            "Promote public transit and cycling infrastructure",
-            "Install air quality monitoring stations",
-            "Enforce industrial emission standards",
+            "Restrict heavy vehicles during peak traffic hours",
+            "Expand public transit and safe cycling routes",
+            "Monitor air quality at busy intersections",
         ],
     },
     {
         "condition": lambda d: d["environmental"]["green_coverage_pct"] < 20,
         "category": "green_corridor",
         "priority": "medium",
-        "title": "Insufficient Green Coverage",
+        "title": "Low green coverage",
         "description": (
-            "Green coverage is below the recommended 20% threshold. "
-            "Green corridor planning can significantly improve environmental health."
+            "Less than 20% of the area is green space. Connected parks and "
+            "street trees improve air and neighborhood comfort."
         ),
         "actions": [
-            "Design connected green corridors linking parks",
+            "Link parks with green street corridors",
             "Convert vacant lots to community gardens",
-            "Plant drought-resistant native species",
-            "Protect existing green spaces from development",
+            "Plant drought-tolerant native species",
         ],
     },
     {
         "condition": lambda d: d["weather"]["humidity"] < 30,
         "category": "water_conservation",
         "priority": "medium",
-        "title": "Low Humidity — Water Conservation Needed",
+        "title": "Dry conditions",
         "description": (
-            "Low humidity levels indicate potential water stress. "
-            "Water conservation measures will benefit the ecosystem."
+            "Low humidity suggests water stress. Harvesting rain and efficient "
+            "irrigation protect plants and local water supplies."
         ),
         "actions": [
-            "Implement rainwater harvesting systems",
-            "Use drip irrigation for green spaces",
-            "Restore natural water bodies and wetlands",
-            "Install greywater recycling in public facilities",
+            "Install rainwater harvesting on public buildings",
+            "Use drip irrigation in parks and medians",
+            "Restore small wetlands where feasible",
         ],
     },
     {
         "condition": lambda d: d["environmental"]["ndvi"] < 0.4,
         "category": "vegetation",
         "priority": "medium",
-        "title": "Vegetation Restoration Required",
+        "title": "Sparse vegetation",
         "description": (
-            "NDVI analysis indicates sparse vegetation. "
-            "Targeted reforestation can improve air quality and biodiversity."
+            "Vegetation cover is thin for this area. Targeted planting "
+            "improves air quality, shade, and local biodiversity."
         ),
         "actions": [
-            "Launch community tree-planting drives",
-            "Establish urban forests on degraded land",
-            "Use Miyawaki method for dense mini-forests",
-            "Protect and expand existing forest patches",
+            "Run community tree-planting along key corridors",
+            "Establish small urban forests on unused land",
+            "Protect existing tree patches from removal",
         ],
     },
 ]
@@ -147,7 +140,7 @@ class RecommendationEngine:
                     "priority": template["priority"],
                     "title": template["title"],
                     "description": template["description"],
-                    "actions": template["actions"],
+                    "actions": template["actions"][:3],
                 })
         return recommendations
 
@@ -157,29 +150,29 @@ class RecommendationEngine:
             return {
                 "category": "maintenance",
                 "priority": "low",
-                "title": "Maintain Current Environmental Health",
+                "title": "Healthy conditions",
                 "description": (
-                    "This area shows healthy environmental indicators. "
-                    "Continue monitoring and maintain existing green infrastructure."
+                    "Indicators look good for this area. Keep monitoring and "
+                    "protect existing trees and green spaces."
                 ),
                 "actions": [
-                    "Regular environmental monitoring",
-                    "Protect existing vegetation",
-                    "Community awareness programs",
+                    "Continue periodic air and vegetation checks",
+                    "Protect existing trees from removal",
+                    "Share simple environmental tips with neighbors",
                 ],
             }
         return {
             "category": "general",
             "priority": "medium",
-            "title": "General Environmental Improvement",
+            "title": "Room to improve",
             "description": (
-                "Environmental conditions show room for improvement. "
-                "A combination of green infrastructure and pollution control is recommended."
+                "Several indicators can be improved with more greenery and "
+                "cleaner transport choices in this area."
             ),
             "actions": [
-                "Increase urban tree cover",
-                "Improve waste management practices",
-                "Promote sustainable transportation",
+                "Add street trees on exposed corridors",
+                "Improve local waste collection points",
+                "Promote walking and transit for short trips",
             ],
         }
 
@@ -188,24 +181,36 @@ class RecommendationEngine:
             from openai import AsyncOpenAI
 
             client = AsyncOpenAI(api_key=self.api_key)
-            prompt = f"""Based on this environmental data, generate 2 actionable recommendations as JSON array.
-Each item: {{"category": str, "priority": "low"|"medium"|"high"|"critical", "title": str, "description": str, "actions": [str]}}
+            prompt = f"""You are a local environmental advisor. Using this data, write exactly 2 recommendations as a JSON array.
+
+Rules:
+- Plain language for residents and city planners (no jargon like NDVI)
+- description: max 2 short sentences (why it matters locally)
+- actions: exactly 3 specific, actionable bullets each
+- Avoid generic phrases like "environmental conditions show room for improvement"
+- title: under 8 words
+
+Schema per item: {{"category": str, "priority": "low"|"medium"|"high"|"critical", "title": str, "description": str, "actions": [str, str, str]}}
 
 Data: {json.dumps(context, default=str)}
 
-Return ONLY valid JSON array."""
+Return ONLY a valid JSON array."""
 
             response = await client.chat.completions.create(
                 model="gpt-4o-mini",
                 messages=[{"role": "user", "content": prompt}],
-                temperature=0.7,
-                max_tokens=800,
+                temperature=0.5,
+                max_tokens=700,
             )
 
             content = response.choices[0].message.content.strip()
             if content.startswith("```"):
                 content = content.split("\n", 1)[1].rsplit("```", 1)[0]
 
-            return json.loads(content)
+            parsed = json.loads(content)
+            for rec in parsed:
+                if isinstance(rec.get("actions"), list):
+                    rec["actions"] = rec["actions"][:3]
+            return parsed
         except Exception:
             return []

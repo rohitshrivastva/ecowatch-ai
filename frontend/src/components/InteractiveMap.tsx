@@ -216,7 +216,7 @@ export default function InteractiveMap({
         )}
       </div>
 
-      <div className="relative h-[400px] lg:h-[500px]">
+      <div className="relative h-[320px] sm:h-[400px] lg:h-[480px]">
         <MapContainer
           center={defaultCenter}
           zoom={5}
@@ -269,16 +269,20 @@ export default function InteractiveMap({
           </div>
         )}
 
-        <div className="absolute top-3 right-3 z-[1000] flex flex-col gap-2 items-end">
-          <HeatmapControls
-            enabled={heatmap.enabled}
-            type={heatmap.type}
-            loading={heatmap.loading}
-            onToggle={heatmap.onToggle}
-            onTypeChange={heatmap.onTypeChange}
-          />
+        <div className="absolute z-[1000] left-3 right-3 bottom-3 sm:left-auto sm:right-3 sm:top-3 sm:bottom-auto flex flex-col gap-2 sm:items-end pointer-events-none">
+          <div className="pointer-events-auto w-full sm:w-auto">
+            <HeatmapControls
+              enabled={heatmap.enabled}
+              type={heatmap.type}
+              loading={heatmap.loading}
+              onToggle={heatmap.onToggle}
+              onTypeChange={heatmap.onTypeChange}
+            />
+          </div>
           {heatmap.enabled && (
-            <HeatmapLegend type={heatmap.type} lastUpdated={heatmap.lastUpdated} />
+            <div className="pointer-events-auto w-full sm:w-auto hidden sm:block">
+              <HeatmapLegend type={heatmap.type} lastUpdated={heatmap.lastUpdated} />
+            </div>
           )}
         </div>
 

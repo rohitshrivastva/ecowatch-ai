@@ -36,6 +36,7 @@ export default function HeatmapLayer({
 }) {
   const map = useMap();
   const layerRef = useRef<HeatLayer | null>(null);
+  const typeRef = useRef<HeatmapType>(heatmapType);
 
   useEffect(() => {
     if (!visible || points.length === 0) {
@@ -49,11 +50,19 @@ export default function HeatmapLayer({
       gradient: HEATMAP_GRADIENTS[heatmapType],
     };
 
+    const typeChanged = typeRef.current !== heatmapType;
+    typeRef.current = heatmapType;
+
+    if (layerRef.current && !typeChanged) {
+      layerRef.current.setLatLngs(latlngs);
+      layerRef.current.setOptions(options);
+      return;
+    }
+
     removeLayer(map, layerRef);
     const layer = L.heatLayer(latlngs, options) as HeatLayer;
     layer.addTo(map);
     layerRef.current = layer;
-
     map.invalidateSize();
 
     return () => {
