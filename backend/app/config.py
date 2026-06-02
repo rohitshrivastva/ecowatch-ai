@@ -11,7 +11,8 @@ class Settings(BaseSettings):
     waqi_api_key: str = ""
     openai_api_key: str = ""
     cache_ttl_seconds: int = 300
-    cors_origins: list[str] = ["http://localhost:3000", "http://127.0.0.1:3000", 'https://ecowatch.ai.vercel.app']
+    cors_origins: list[str] = ["http://localhost:3000", "http://127.0.0.1:3000", 'https://ecowatch.ai.vercel.app', 
+    'https://ecowatch-ai-rohitshivastva.vercel.app', 'https://ecowatch-ai-ten.vercel.app']
 
     class Config:
         env_file = ".env"
