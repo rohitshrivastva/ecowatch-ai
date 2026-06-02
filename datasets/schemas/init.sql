@@ -59,3 +59,28 @@ CREATE INDEX IF NOT EXISTS idx_snapshots_captured ON environmental_snapshots(cap
 CREATE INDEX IF NOT EXISTS idx_locations_coords ON locations USING GIST (
     ST_SetSRID(ST_MakePoint(longitude, latitude), 4326)
 );
+
+CREATE TABLE IF NOT EXISTS environmental_history (
+    id SERIAL PRIMARY KEY,
+    location_id INTEGER REFERENCES locations(id) ON DELETE CASCADE,
+    aqi INTEGER NOT NULL,
+    temperature DOUBLE PRECISION NOT NULL,
+    humidity INTEGER NOT NULL,
+    ndvi_score DOUBLE PRECISION NOT NULL,
+    risk_score INTEGER NOT NULL,
+    timestamp TIMESTAMPTZ DEFAULT NOW()
+);
+
+CREATE TABLE IF NOT EXISTS favorite_locations (
+    id SERIAL PRIMARY KEY,
+    user_id INTEGER REFERENCES users(id) ON DELETE CASCADE,
+    location_name VARCHAR(255) NOT NULL,
+    latitude DOUBLE PRECISION NOT NULL,
+    longitude DOUBLE PRECISION NOT NULL,
+    location_id INTEGER REFERENCES locations(id) ON DELETE SET NULL,
+    created_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+CREATE INDEX IF NOT EXISTS idx_history_location ON environmental_history(location_id);
+CREATE INDEX IF NOT EXISTS idx_history_timestamp ON environmental_history(timestamp);
+CREATE INDEX IF NOT EXISTS idx_favorites_user ON favorite_locations(user_id);

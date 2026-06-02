@@ -70,6 +70,23 @@ npm run dev
 - Vegetation analysis (NDVI)
 - Environmental risk scoring (0–100)
 - AI-generated recommendations
+- **Historical trends** — AQI, temperature, humidity, NDVI, and risk over 24h / 7d / 30d / 1y
+- **Favorite locations** — save and monitor places (requires sign-in)
+- **Environmental heatmaps** — AQI, temperature, vegetation, and combined risk overlays on the map
+
+### Intelligence APIs
+
+| Endpoint | Method | Description |
+|----------|--------|-------------|
+| `/api/v1/history/trends` | GET | Trend series and change metrics (`location_id`, `period`) |
+| `/api/v1/history/comparison` | GET | Period-over-period comparison |
+| `/api/v1/history/{location_id}` | GET | Paginated history records |
+| `/api/v1/favorites` | POST/GET | Create or list favorites (JWT) |
+| `/api/v1/favorites/{id}` | PUT/DELETE | Update or remove a favorite |
+| `/api/v1/heatmap/aqi` | GET | Heatmap points in map bounds |
+| `/api/v1/heatmap/temperature` | GET | Temperature intensity grid |
+| `/api/v1/heatmap/vegetation` | GET | NDVI-based vegetation overlay |
+| `/api/v1/heatmap/environmental-risk` | GET | Combined environmental risk |
 
 ## Project Structure
 

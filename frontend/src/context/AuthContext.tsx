@@ -86,7 +86,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     () => ({
       user,
       isLoading,
-      isAuthenticated: Boolean(user && getStoredToken()),
+      isAuthenticated: Boolean(user),
       login,
       register,
       logout,

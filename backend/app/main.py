@@ -7,6 +7,9 @@ from app.config import get_settings
 from app.db import init_db
 from app.routes.auth import router as auth_router
 from app.routes.environment import router as environment_router
+from app.routes.favorites import router as favorites_router
+from app.routes.history import router as history_router
+from app.routes.heatmap import router as heatmap_router
 from app.services.cache import cache_service
 
 
@@ -38,6 +41,9 @@ def create_app() -> FastAPI:
 
     app.include_router(auth_router)
     app.include_router(environment_router)
+    app.include_router(history_router)
+    app.include_router(favorites_router)
+    app.include_router(heatmap_router)
 
     return app
 

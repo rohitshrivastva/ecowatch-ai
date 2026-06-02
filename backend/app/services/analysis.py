@@ -16,6 +16,8 @@ from app.services.satellite import satellite_service
 from app.services.ai import ai_service
 from app.services.risk_scoring import compute_risk_score
 from app.services.cache import cache_service
+from app.db import async_session
+from app.services.history import history_service
 
 
 class AnalysisService:
@@ -25,7 +27,24 @@ class AnalysisService:
 
         cached = await cache_service.get("analysis", *cache_key)
         if cached:
-            return EnvironmentalAnalysis(**cached)
+            analysis = EnvironmentalAnalysis(**cached)
+            location_id = await self._persist_history(
+                lat,
+                lon,
+                analysis.location_name or request.name,
+                analysis.air_pollution.model_dump(),
+                analysis.weather.model_dump(),
+                {
+                    "ndvi": analysis.environmental.ndvi,
+                    "ndvi_label": analysis.environmental.ndvi_label,
+                    "urban_heat_index": analysis.environmental.urban_heat_index,
+                    "green_coverage_pct": analysis.environmental.green_coverage_pct,
+                    "water_proximity_km": analysis.environmental.water_proximity_km,
+                },
+                analysis.risk.model_dump(),
+            )
+            analysis.location_id = location_id
+            return analysis
 
         boundary_dict = request.boundary.model_dump() if request.boundary else None
 
@@ -47,7 +66,12 @@ class AnalysisService:
             risk=risk_data,
         )
 
+        location_id = await self._persist_history(
+            lat, lon, request.name, pollution, weather, satellite, risk_data
+        )
+
         analysis = EnvironmentalAnalysis(
+            location_id=location_id,
             location=Coordinates(latitude=lat, longitude=lon),
             location_name=request.name,
             air_pollution=AirPollutionMetrics(**pollution),
@@ -66,6 +90,35 @@ class AnalysisService:
 
         await cache_service.set("analysis", analysis.model_dump(), *cache_key)
         return analysis
+
+    async def _persist_history(
+        self,
+        lat: float,
+        lon: float,
+        name: Optional[str],
+        pollution: dict,
+        weather: dict,
+        satellite: dict,
+        risk_data: dict,
+    ) -> Optional[int]:
+        try:
+            async with async_session() as session:
+                location = await history_service.get_or_create_location(
+                    session, lat, lon, name
+                )
+                await history_service.record_snapshot(
+                    session,
+                    location.id,
+                    aqi=int(pollution["aqi"]),
+                    temperature=float(weather["temperature"]),
+                    humidity=int(weather["humidity"]),
+                    ndvi_score=float(satellite["ndvi"]),
+                    risk_score=int(risk_data["score"]),
+                )
+                await session.commit()
+                return location.id
+        except Exception:
+            return None
 
     async def _fetch_all(self, lat: float, lon: float, boundary: Optional[dict]):
         import asyncio

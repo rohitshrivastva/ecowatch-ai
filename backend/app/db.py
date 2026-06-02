@@ -24,6 +24,11 @@ async_session = async_sessionmaker(engine, class_=AsyncSession, expire_on_commit
 
 async def init_db() -> None:
     from app.models.user import User  # noqa: F401
+    from app.models.location import (  # noqa: F401
+        EnvironmentalHistory,
+        FavoriteLocation,
+        Location,
+    )
 
     async with engine.begin() as conn:
         await conn.run_sync(Base.metadata.create_all)

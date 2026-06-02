@@ -45,6 +45,7 @@ export interface Recommendation {
 }
 
 export interface EnvironmentalAnalysis {
+  location_id?: number | null;
   location: Coordinates;
   location_name?: string;
   air_pollution: AirPollutionMetrics;

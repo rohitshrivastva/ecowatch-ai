@@ -62,6 +62,7 @@ class Recommendation(BaseModel):
 
 
 class EnvironmentalAnalysis(BaseModel):
+    location_id: Optional[int] = None
     location: Coordinates
     location_name: Optional[str] = None
     air_pollution: AirPollutionMetrics
