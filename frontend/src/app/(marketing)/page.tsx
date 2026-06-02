@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { ArrowRight, Leaf, Map, Sparkles, Shield } from "lucide-react";
 import { getAppUrl } from "@/lib/app-url";
+import Image from "next/image";
 
 const features = [
   {
@@ -64,14 +65,16 @@ export default function MarketingPage() {
 
       <section className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-16">
         <div className="glass-panel p-8 lg:p-12 border border-eco-primary/20">
-          <div className="aspect-video rounded-xl bg-eco-bg/80 border border-eco-border flex items-center justify-center">
-            <div className="text-center p-8">
-              <Leaf className="w-12 h-12 text-eco-primary mx-auto mb-4 opacity-80" />
-              <p className="text-eco-muted text-sm">
-                Dashboard preview — environmental score, AI insights & map
-              </p>
-            </div>
-          </div>
+        <div className="aspect-video rounded-xl overflow-hidden border border-eco-border bg-eco-bg/80 relative">
+  <Image
+    src="/images/dashboard-preview.png"
+    alt="EcoWatch AI dashboard showing environmental score, AQI, map, and AI recommendations"
+    fill
+    className="object-cover object-top"
+    sizes="(max-width: 768px) 100vw, 1152px"
+    priority
+  />
+</div>
         </div>
       </section>
 

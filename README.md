@@ -106,8 +106,21 @@ ecowatch-ai/
 ├── ai-recommendations/ # AI recommendation engine
 ├── infrastructure/     # Docker, CI/CD, AWS
 ├── datasets/           # Sample data & schemas
-└── docs/               # Architecture documentation
+└── docs/               # PRODUCT, ARCHITECTURE, UI/UX, heatmap & AI rules, TODO
 ```
+
+## Documentation
+
+Full doc index: [docs/README.md](docs/README.md)
+
+| Doc | Description |
+|-----|-------------|
+| [docs/PRODUCT.md](docs/PRODUCT.md) | Product vision and MVP scope |
+| [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) | System architecture and APIs |
+| [docs/UI_UX_RULES.md](docs/UI_UX_RULES.md) | Dashboard UX contract |
+| [docs/HEATMAP_RULES.md](docs/HEATMAP_RULES.md) | Heatmap layer rules |
+| [docs/AI_RECOMMENDATION_RULES.md](docs/AI_RECOMMENDATION_RULES.md) | Recommendation engine |
+| [docs/TODO.md](docs/TODO.md) | Backlog and completed work |
 
 ## Authentication (optional)
 
