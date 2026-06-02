@@ -23,6 +23,9 @@ build/
 frontend/.next/
 frontend/out/
 
+# Auth database (SQLite local)
+backend/data/
+
 # Python
 .pytest_cache/
 .mypy_cache/

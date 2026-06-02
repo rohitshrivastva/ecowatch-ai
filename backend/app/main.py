@@ -4,12 +4,15 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from app.config import get_settings
+from app.db import init_db
+from app.routes.auth import router as auth_router
 from app.routes.environment import router as environment_router
 from app.services.cache import cache_service
 
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
+    await init_db()
     await cache_service.connect()
     yield
     await cache_service.disconnect()
@@ -33,6 +36,7 @@ def create_app() -> FastAPI:
         allow_headers=["*"],
     )
 
+    app.include_router(auth_router)
     app.include_router(environment_router)
 
     return app

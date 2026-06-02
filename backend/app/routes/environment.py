@@ -1,8 +1,9 @@
 from typing import Optional
 
-from fastapi import APIRouter, Query, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Query
 
-from app.models.schemas import LocationRequest, EnvironmentalAnalysis, HealthResponse
+from app.deps import verify_auth_if_required
+from app.models.schemas import EnvironmentalAnalysis, HealthResponse, LocationRequest
 from app.services.analysis import analysis_service
 
 router = APIRouter(prefix="/api/v1", tags=["environment"])
@@ -19,7 +20,7 @@ async def health_check():
     )
 
 
-@router.post("/analyze", response_model=EnvironmentalAnalysis)
+@router.post("/analyze", response_model=EnvironmentalAnalysis, dependencies=[Depends(verify_auth_if_required)])
 async def analyze_location(request: LocationRequest):
     """Analyze environmental conditions for a given location."""
     try:
@@ -28,7 +29,7 @@ async def analyze_location(request: LocationRequest):
         raise HTTPException(status_code=500, detail=f"Analysis failed: {str(e)}")
 
 
-@router.get("/analyze", response_model=EnvironmentalAnalysis)
+@router.get("/analyze", response_model=EnvironmentalAnalysis, dependencies=[Depends(verify_auth_if_required)])
 async def analyze_by_coords(
     lat: float = Query(..., ge=-90, le=90, description="Latitude"),
     lon: float = Query(..., ge=-180, le=180, description="Longitude"),

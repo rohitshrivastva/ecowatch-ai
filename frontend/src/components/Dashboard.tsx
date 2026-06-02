@@ -50,7 +50,8 @@ export default function Dashboard() {
       const result = await analyzeLocation(loc);
       setAnalysis(result);
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Analysis failed");
+      const message = err instanceof Error ? err.message : "Analysis failed";
+      setError(message);
       setAnalysis(null);
     } finally {
       setLoading(false);

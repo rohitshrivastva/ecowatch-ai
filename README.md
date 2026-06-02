@@ -84,6 +84,20 @@ ecowatch-ai/
 └── docs/               # Architecture documentation
 ```
 
+## Authentication (optional)
+
+Sign in and register are available at `/login` and `/register` but **not required** by default — the dashboard works without an account.
+
+| Endpoint | Method | Description |
+|----------|--------|-------------|
+| `/api/v1/auth/register` | POST | Create account (email, password, optional name) |
+| `/api/v1/auth/login` | POST | Sign in, returns JWT |
+| `/api/v1/auth/me` | GET | Current user (Bearer token) |
+
+To **require login** for analysis later, set `REQUIRE_AUTH=true` on the backend (and redeploy).
+
+**Production:** set a strong `JWT_SECRET_KEY` in Render when using auth.
+
 ## API Keys
 
 | Service | Env Variable | Purpose |
@@ -91,6 +105,7 @@ ecowatch-ai/
 | OpenWeather | `OPENWEATHER_API_KEY` | Weather & air pollution |
 | WAQI | `WAQI_API_KEY` | Air quality index |
 | Google Earth Engine | `GEE_SERVICE_ACCOUNT` | Satellite imagery |
+| Auth | `JWT_SECRET_KEY` | Sign JWT tokens (required in production) |
 
 Without API keys, the system uses realistic mock data for development.
 
