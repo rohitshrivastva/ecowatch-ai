@@ -25,7 +25,10 @@ export async function fetchTrends(
 export async function fetchHeatmap(
   type: HeatmapType,
   bounds: { north: number; south: number; east: number; west: number },
-  zoom = 10
+  zoom = 10,
+  signal?: AbortSignal,
+  centerLat?: number,
+  centerLon?: number
 ): Promise<HeatmapResponse> {
   const params = new URLSearchParams({
     north: String(bounds.north),
@@ -34,7 +37,13 @@ export async function fetchHeatmap(
     west: String(bounds.west),
     zoom: String(zoom),
   });
-  const response = await fetch(`${API_URL}/api/v1/heatmap/${type}?${params}`);
+  if (centerLat != null && centerLon != null) {
+    params.set("center_lat", String(centerLat));
+    params.set("center_lon", String(centerLon));
+  }
+  const response = await fetch(`${API_URL}/api/v1/heatmap/${type}?${params}`, {
+    signal,
+  });
   if (!response.ok) {
     throw new Error("Failed to load heatmap data");
   }

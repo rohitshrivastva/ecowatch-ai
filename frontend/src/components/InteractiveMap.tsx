@@ -10,10 +10,14 @@ import {
   useMap,
   Rectangle,
 } from "react-leaflet";
-import { Layers, Search, MapPin, Square } from "lucide-react";
+import { Search, MapPin, Square } from "lucide-react";
 import type { LocationSelection } from "@/types/environment";
-import type { HeatmapPoint, HeatmapType } from "@/types/intelligence";
+import type { HeatmapBounds, HeatmapPoint, HeatmapType } from "@/types/intelligence";
 import HeatmapLayer from "@/components/HeatmapLayer";
+import HeatmapControls from "@/components/heatmap/HeatmapControls";
+import HeatmapLegend from "@/components/heatmap/HeatmapLegend";
+import HeatmapTooltip from "@/components/heatmap/HeatmapTooltip";
+import HeatmapDebugPanel from "@/components/heatmap/HeatmapDebugPanel";
 
 const defaultCenter: [number, number] = [28.6139, 77.209];
 
@@ -41,13 +45,7 @@ function MapController({ center }: { center: [number, number] }) {
 function MapBoundsWatcher({
   onBoundsChange,
 }: {
-  onBoundsChange: (bounds: {
-    north: number;
-    south: number;
-    east: number;
-    west: number;
-    zoom: number;
-  }) => void;
+  onBoundsChange: (bounds: HeatmapBounds) => void;
 }) {
   const map = useMap();
   useEffect(() => {
@@ -72,30 +70,29 @@ function MapBoundsWatcher({
   return null;
 }
 
-const HEATMAP_OPTIONS: { id: HeatmapType; label: string }[] = [
-  { id: "aqi", label: "AQI" },
-  { id: "temperature", label: "Temperature" },
-  { id: "vegetation", label: "Vegetation" },
-  { id: "environmental-risk", label: "Risk" },
-];
+export interface HeatmapMapProps {
+  enabled: boolean;
+  type: HeatmapType;
+  points: HeatmapPoint[];
+  renderPoints: HeatmapPoint[];
+  loading: boolean;
+  error: string | null;
+  lastUpdated: string | null;
+  viewportZoom: number;
+  lastBounds: HeatmapBounds | null;
+  debugMode: boolean;
+  onToggleDebug: () => void;
+  onToggle: (enabled: boolean) => void;
+  onTypeChange: (type: HeatmapType) => void;
+  onBoundsChange: (bounds: HeatmapBounds) => void;
+}
 
 interface InteractiveMapProps {
   onLocationSelect: (selection: LocationSelection) => void;
   selectedLocation?: LocationSelection | null;
   loading?: boolean;
   detectingLocation?: boolean;
-  heatmapEnabled?: boolean;
-  heatmapType?: HeatmapType;
-  heatmapPoints?: HeatmapPoint[];
-  onHeatmapToggle?: (enabled: boolean) => void;
-  onHeatmapTypeChange?: (type: HeatmapType) => void;
-  onBoundsChange?: (bounds: {
-    north: number;
-    south: number;
-    east: number;
-    west: number;
-    zoom: number;
-  }) => void;
+  heatmap: HeatmapMapProps;
 }
 
 export default function InteractiveMap({
@@ -103,12 +100,7 @@ export default function InteractiveMap({
   selectedLocation,
   loading,
   detectingLocation,
-  heatmapEnabled = false,
-  heatmapType = "environmental-risk",
-  heatmapPoints = [],
-  onHeatmapToggle,
-  onHeatmapTypeChange,
-  onBoundsChange,
+  heatmap,
 }: InteractiveMapProps) {
   const [searchQuery, setSearchQuery] = useState("");
   const [drawMode, setDrawMode] = useState(false);
@@ -202,33 +194,6 @@ export default function InteractiveMap({
             className="w-full pl-10 pr-4 py-2.5 bg-eco-bg border border-eco-border rounded-lg text-sm text-eco-text placeholder:text-eco-muted focus:outline-none focus:border-eco-primary/50"
           />
         </div>
-        {onHeatmapToggle && (
-          <button
-            type="button"
-            onClick={() => onHeatmapToggle(!heatmapEnabled)}
-            className={`flex items-center gap-2 px-4 py-2.5 rounded-lg text-sm font-medium transition-colors ${
-              heatmapEnabled
-                ? "bg-eco-accent/80 text-white"
-                : "bg-eco-surface-hover text-eco-muted hover:text-eco-text"
-            }`}
-          >
-            <Layers className="w-4 h-4" />
-            Heatmap
-          </button>
-        )}
-        {heatmapEnabled && onHeatmapTypeChange && (
-          <select
-            value={heatmapType}
-            onChange={(e) => onHeatmapTypeChange(e.target.value as HeatmapType)}
-            className="px-3 py-2.5 rounded-lg bg-eco-bg border border-eco-border text-sm text-eco-text"
-          >
-            {HEATMAP_OPTIONS.map((o) => (
-              <option key={o.id} value={o.id}>
-                {o.label}
-              </option>
-            ))}
-          </select>
-        )}
         <button
           onClick={() => {
             setDrawMode(!drawMode);
@@ -263,8 +228,20 @@ export default function InteractiveMap({
             url="https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png"
           />
           <MapController center={mapCenter} />
-          {onBoundsChange && <MapBoundsWatcher onBoundsChange={onBoundsChange} />}
-          <HeatmapLayer points={heatmapPoints} visible={heatmapEnabled} />
+          <MapBoundsWatcher onBoundsChange={heatmap.onBoundsChange} />
+          {heatmap.enabled && heatmap.renderPoints.length > 0 && (
+            <HeatmapLayer
+              points={heatmap.renderPoints}
+              visible={heatmap.enabled}
+              heatmapType={heatmap.type}
+              zoom={heatmap.viewportZoom}
+            />
+          )}
+          <HeatmapTooltip
+            points={heatmap.renderPoints}
+            heatmapType={heatmap.type}
+            enabled={heatmap.enabled}
+          />
           <MapClickHandler
             onSelect={(lat, lng) =>
               drawMode ? handleDrawClick(lat, lng) : handleSelect(lat, lng)
@@ -284,18 +261,50 @@ export default function InteractiveMap({
           )}
         </MapContainer>
 
-        <div className="absolute bottom-4 left-4 glass-panel px-3 py-2 text-xs text-eco-muted z-[1000] space-y-2">
+        {heatmap.loading && heatmap.enabled && (
+          <div className="absolute inset-0 z-[999] bg-eco-bg/40 flex items-center justify-center pointer-events-none">
+            <span className="text-sm text-eco-primary animate-pulse">
+              Loading heatmap…
+            </span>
+          </div>
+        )}
+
+        <div className="absolute top-3 right-3 z-[1000] flex flex-col gap-2 items-end">
+          <HeatmapControls
+            enabled={heatmap.enabled}
+            type={heatmap.type}
+            loading={heatmap.loading}
+            onToggle={heatmap.onToggle}
+            onTypeChange={heatmap.onTypeChange}
+          />
+          {heatmap.enabled && (
+            <HeatmapLegend type={heatmap.type} lastUpdated={heatmap.lastUpdated} />
+          )}
+        </div>
+
+        {heatmap.error && heatmap.enabled && (
+          <div className="absolute top-3 left-3 z-[1000] glass-panel px-3 py-2 text-xs text-eco-danger max-w-[220px]">
+            {heatmap.error}
+          </div>
+        )}
+
+        <HeatmapDebugPanel
+          enabled={heatmap.enabled}
+          type={heatmap.type}
+          apiPointCount={heatmap.points.length}
+          renderPointCount={heatmap.renderPoints.length}
+          zoom={heatmap.viewportZoom}
+          bounds={heatmap.lastBounds}
+          points={heatmap.renderPoints}
+          debugMode={heatmap.debugMode}
+          onToggleDebug={heatmap.onToggleDebug}
+        />
+
+        <div className="absolute bottom-4 left-4 glass-panel px-3 py-2 text-xs text-eco-muted z-[1000]">
           <div className="flex items-center gap-2">
             <MapPin className="w-3 h-3 text-eco-primary" />
             Click map to select • Search or draw an area
           </div>
-          {heatmapEnabled && (
-            <div className="flex items-center gap-2 pt-1 border-t border-eco-border">
-              <span className="text-[10px]">Low</span>
-              <div className="h-2 flex-1 rounded-full bg-gradient-to-r from-emerald-500 via-amber-500 to-red-500" />
-              <span className="text-[10px]">High</span>
-            </div>
-          )}
         </div>
       </div>
     </div>

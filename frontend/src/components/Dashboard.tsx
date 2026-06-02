@@ -20,9 +20,8 @@ import { PollutionChart } from "@/components/Charts";
 import HistoricalTrendsPanel from "@/components/HistoricalTrendsPanel";
 import FavoritesPanel from "@/components/FavoritesPanel";
 import { analyzeLocation } from "@/lib/api";
-import { fetchHeatmap } from "@/lib/intelligence-api";
+import { useHeatmap } from "@/hooks/useHeatmap";
 import type { EnvironmentalAnalysis, LocationSelection } from "@/types/environment";
-import type { HeatmapPoint, HeatmapType } from "@/types/intelligence";
 
 const InteractiveMap = dynamic(() => import("@/components/InteractiveMap"), {
   ssr: false,
@@ -46,11 +45,9 @@ export default function Dashboard() {
   const [detectingLocation, setDetectingLocation] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [selection, setSelection] = useState<LocationSelection | null>(null);
-  const [heatmapEnabled, setHeatmapEnabled] = useState(false);
-  const [heatmapType, setHeatmapType] = useState<HeatmapType>("environmental-risk");
-  const [heatmapPoints, setHeatmapPoints] = useState<HeatmapPoint[]>([]);
   const geoAbortRef = useRef(false);
-  const heatmapRequestRef = useRef(0);
+  const heatmap = useHeatmap();
+  const { setFocal } = heatmap;
 
   const handleLocationSelect = useCallback(async (loc: LocationSelection) => {
     setSelection(loc);
@@ -127,40 +124,19 @@ export default function Dashboard() {
     };
   }, [handleLocationSelect]);
 
-  const loadHeatmap = useCallback(
-    async (bounds: {
-      north: number;
-      south: number;
-      east: number;
-      west: number;
-      zoom: number;
-    }) => {
-      if (!heatmapEnabled) return;
-      const id = ++heatmapRequestRef.current;
-      try {
-        const data = await fetchHeatmap(heatmapType, bounds, bounds.zoom);
-        if (id === heatmapRequestRef.current) {
-          setHeatmapPoints(data.points);
-        }
-      } catch {
-        if (id === heatmapRequestRef.current) setHeatmapPoints([]);
-      }
-    },
-    [heatmapEnabled, heatmapType]
-  );
-
   useEffect(() => {
-    if (heatmapEnabled && selection) {
-      const pad = 0.35;
-      loadHeatmap({
-        north: selection.latitude + pad,
-        south: selection.latitude - pad,
-        east: selection.longitude + pad,
-        west: selection.longitude - pad,
-        zoom: 10,
-      });
+    if (!selection) {
+      heatmap.setFocal(null);
+      return;
     }
-  }, [heatmapEnabled, heatmapType, selection, loadHeatmap]);
+    const intensity =
+      analysis?.risk?.score != null ? analysis.risk.score / 100 : undefined;
+    heatmap.setFocal({
+      lat: selection.latitude,
+      lng: selection.longitude,
+      intensity,
+    });
+  }, [selection, analysis?.risk?.score, setFocal]);
 
   return (
     <div className="space-y-6">
@@ -170,12 +146,22 @@ export default function Dashboard() {
           selectedLocation={selection}
           loading={loading}
           detectingLocation={detectingLocation}
-          heatmapEnabled={heatmapEnabled}
-          heatmapType={heatmapType}
-          heatmapPoints={heatmapPoints}
-          onHeatmapToggle={setHeatmapEnabled}
-          onHeatmapTypeChange={setHeatmapType}
-          onBoundsChange={loadHeatmap}
+          heatmap={{
+            enabled: heatmap.enabled,
+            type: heatmap.type,
+            points: heatmap.points,
+            renderPoints: heatmap.renderPoints,
+            loading: heatmap.loading,
+            error: heatmap.error,
+            lastUpdated: heatmap.lastUpdated,
+            viewportZoom: heatmap.viewportZoom,
+            lastBounds: heatmap.lastBounds,
+            debugMode: heatmap.debugMode,
+            onToggleDebug: () => heatmap.setDebugMode((d) => !d),
+            onToggle: heatmap.setEnabled,
+            onTypeChange: heatmap.setType,
+            onBoundsChange: heatmap.onBoundsChange,
+          }}
         />
         <FavoritesPanel
           currentSelection={selection}

@@ -40,6 +40,15 @@ export type HeatmapPoint = {
   lat: number;
   lng: number;
   intensity: number;
+  value?: number | null;
+};
+
+export type HeatmapBounds = {
+  north: number;
+  south: number;
+  east: number;
+  west: number;
+  zoom: number;
 };
 
 export type HeatmapResponse = {
@@ -51,4 +60,5 @@ export type HeatmapResponse = {
     east: number;
     west: number;
   };
+  updated_at?: string;
 };

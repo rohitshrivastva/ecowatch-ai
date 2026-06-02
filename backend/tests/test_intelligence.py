@@ -62,10 +62,15 @@ async def test_heatmap_endpoints(client):
         assert response.status_code == 200
         data = response.json()
         assert data["type"] == path
+        assert "updated_at" in data
         assert isinstance(data["points"], list)
-        if data["points"]:
-            point = data["points"][0]
+        assert len(data["points"]) >= 100
+        assert len(data["points"]) <= 1500
+        for point in data["points"]:
             assert "lat" in point and "lng" in point and "intensity" in point
+            assert 0 <= point["intensity"] <= 1
+            if point.get("value") is not None:
+                assert isinstance(point["value"], (int, float))
 
 
 @pytest.mark.asyncio

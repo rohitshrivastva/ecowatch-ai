@@ -1,3 +1,5 @@
+from typing import Optional
+
 from fastapi import APIRouter, Query
 
 from app.schemas.heatmap import HeatmapResponse
@@ -13,8 +15,12 @@ async def heatmap_aqi(
     east: float = Query(..., ge=-180, le=180),
     west: float = Query(..., ge=-180, le=180),
     zoom: int = Query(10, ge=4, le=16),
+    center_lat: Optional[float] = Query(None, ge=-90, le=90),
+    center_lon: Optional[float] = Query(None, ge=-180, le=180),
 ):
-    return await heatmap_service.generate("aqi", north, south, east, west, zoom)
+    return await heatmap_service.generate(
+        "aqi", north, south, east, west, zoom, center_lat, center_lon
+    )
 
 
 @router.get("/temperature", response_model=HeatmapResponse)
@@ -24,8 +30,12 @@ async def heatmap_temperature(
     east: float = Query(..., ge=-180, le=180),
     west: float = Query(..., ge=-180, le=180),
     zoom: int = Query(10, ge=4, le=16),
+    center_lat: Optional[float] = Query(None, ge=-90, le=90),
+    center_lon: Optional[float] = Query(None, ge=-180, le=180),
 ):
-    return await heatmap_service.generate("temperature", north, south, east, west, zoom)
+    return await heatmap_service.generate(
+        "temperature", north, south, east, west, zoom, center_lat, center_lon
+    )
 
 
 @router.get("/vegetation", response_model=HeatmapResponse)
@@ -35,8 +45,12 @@ async def heatmap_vegetation(
     east: float = Query(..., ge=-180, le=180),
     west: float = Query(..., ge=-180, le=180),
     zoom: int = Query(10, ge=4, le=16),
+    center_lat: Optional[float] = Query(None, ge=-90, le=90),
+    center_lon: Optional[float] = Query(None, ge=-180, le=180),
 ):
-    return await heatmap_service.generate("vegetation", north, south, east, west, zoom)
+    return await heatmap_service.generate(
+        "vegetation", north, south, east, west, zoom, center_lat, center_lon
+    )
 
 
 @router.get("/environmental-risk", response_model=HeatmapResponse)
@@ -46,7 +60,9 @@ async def heatmap_environmental_risk(
     east: float = Query(..., ge=-180, le=180),
     west: float = Query(..., ge=-180, le=180),
     zoom: int = Query(10, ge=4, le=16),
+    center_lat: Optional[float] = Query(None, ge=-90, le=90),
+    center_lon: Optional[float] = Query(None, ge=-180, le=180),
 ):
     return await heatmap_service.generate(
-        "environmental-risk", north, south, east, west, zoom
+        "environmental-risk", north, south, east, west, zoom, center_lat, center_lon
     )

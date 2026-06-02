@@ -1,52 +1,65 @@
 "use client";
 
-import { useEffect } from "react";
+import { useEffect, useRef } from "react";
 import { useMap } from "react-leaflet";
 import L from "leaflet";
 import "leaflet.heat";
-import type { HeatmapPoint } from "@/types/intelligence";
+import { HEATMAP_GRADIENTS, clampIntensity, getHeatOptions } from "@/lib/heatmap-config";
+import type { HeatmapPoint, HeatmapType } from "@/types/intelligence";
 
-const GRADIENT = {
-  0.0: "#10b981",
-  0.35: "#84cc16",
-  0.55: "#f59e0b",
-  0.75: "#f97316",
-  1.0: "#ef4444",
+type HeatLayer = L.Layer & {
+  setLatLngs: (latlngs: [number, number, number][]) => void;
+  setOptions: (options: L.HeatMapOptions) => void;
 };
+
+function toLatLngs(points: HeatmapPoint[]): [number, number, number][] {
+  return points.map((p) => [p.lat, p.lng, clampIntensity(p.intensity)]);
+}
+
+function removeLayer(map: L.Map, layerRef: React.MutableRefObject<HeatLayer | null>) {
+  if (layerRef.current) {
+    map.removeLayer(layerRef.current);
+    layerRef.current = null;
+  }
+}
 
 export default function HeatmapLayer({
   points,
   visible,
+  heatmapType,
+  zoom,
 }: {
   points: HeatmapPoint[];
   visible: boolean;
+  heatmapType: HeatmapType;
+  zoom: number;
 }) {
   const map = useMap();
+  const layerRef = useRef<HeatLayer | null>(null);
 
   useEffect(() => {
     if (!visible || points.length === 0) {
-      return undefined;
+      removeLayer(map, layerRef);
+      return;
     }
 
-    const latlngs: [number, number, number][] = points.map((p) => [
-      p.lat,
-      p.lng,
-      p.intensity,
-    ]);
+    const latlngs = toLatLngs(points);
+    const options: L.HeatMapOptions = {
+      ...getHeatOptions(zoom),
+      gradient: HEATMAP_GRADIENTS[heatmapType],
+    };
 
-    const layer = L.heatLayer(latlngs, {
-      radius: 28,
-      blur: 22,
-      maxZoom: 14,
-      minOpacity: 0.35,
-      gradient: GRADIENT,
-    });
+    removeLayer(map, layerRef);
+    const layer = L.heatLayer(latlngs, options) as HeatLayer;
     layer.addTo(map);
+    layerRef.current = layer;
+
+    map.invalidateSize();
 
     return () => {
-      map.removeLayer(layer);
+      removeLayer(map, layerRef);
     };
-  }, [map, points, visible]);
+  }, [map, points, visible, heatmapType, zoom]);
 
   return null;
 }
