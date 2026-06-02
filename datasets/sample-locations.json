@@ -1,0 +1,29 @@
+{
+  "description": "Sample location datasets for EcoWatch AI development and testing",
+  "locations": [
+    {
+      "name": "New Delhi, India",
+      "latitude": 28.6139,
+      "longitude": 77.209,
+      "expected_aqi_range": [100, 300]
+    },
+    {
+      "name": "Mumbai, India",
+      "latitude": 19.076,
+      "longitude": 72.8777,
+      "expected_aqi_range": [80, 250]
+    },
+    {
+      "name": "San Francisco, USA",
+      "latitude": 37.7749,
+      "longitude": -122.4194,
+      "expected_aqi_range": [20, 80]
+    },
+    {
+      "name": "London, UK",
+      "latitude": 51.5074,
+      "longitude": -0.1278,
+      "expected_aqi_range": [30, 100]
+    }
+  ]
+}

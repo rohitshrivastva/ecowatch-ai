@@ -1,0 +1,55 @@
+@import "tailwindcss/base";
+@import "tailwindcss/components";
+@import "tailwindcss/utilities";
+
+@import "leaflet/dist/leaflet.css";
+
+:root {
+  --eco-bg: #0a0f1a;
+  --eco-surface: #111827;
+  --eco-surface-hover: #1a2332;
+  --eco-border: #1e293b;
+  --eco-primary: #10b981;
+  --eco-secondary: #06b6d4;
+  --eco-accent: #8b5cf6;
+  --eco-warning: #f59e0b;
+  --eco-danger: #ef4444;
+  --eco-text: #f1f5f9;
+  --eco-muted: #94a3b8;
+}
+
+body {
+  background: var(--eco-bg);
+  color: var(--eco-text);
+}
+
+@keyframes pulse-glow {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.4); }
+  50% { box-shadow: 0 0 20px 4px rgba(16, 185, 129, 0.2); }
+}
+
+.animate-pulse-glow {
+  animation: pulse-glow 2s ease-in-out infinite;
+}
+
+@keyframes fade-in-up {
+  from { opacity: 0; transform: translateY(12px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.animate-fade-in-up {
+  animation: fade-in-up 0.5s ease-out forwards;
+}
+
+.leaflet-container {
+  background: #0a0f1a !important;
+  border-radius: 0.75rem;
+}
+
+.metric-card {
+  @apply bg-eco-surface border border-eco-border rounded-xl p-4 transition-all duration-300 hover:border-eco-primary/50 hover:shadow-lg hover:shadow-eco-primary/5;
+}
+
+.glass-panel {
+  @apply bg-eco-surface/80 backdrop-blur-xl border border-eco-border rounded-xl;
+}
