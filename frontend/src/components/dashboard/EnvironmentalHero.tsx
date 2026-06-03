@@ -39,8 +39,8 @@ function EnvironmentalHero({
     return (
       <div className="hero-panel p-8 lg:p-10 text-center">
         <p className="text-eco-muted text-sm max-w-lg mx-auto">
-          Select a location on the map or allow location access to see your
-          environmental health overview and AI recommendations.
+          Select a location on the map to see your environmental health overview
+          and AI recommendations.
         </p>
       </div>
     );

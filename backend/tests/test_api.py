@@ -4,6 +4,12 @@ import pytest
 
 
 @pytest.mark.asyncio
+async def test_geo_me_private_ip_returns_404(client):
+    response = await client.get("/api/v1/geo/me")
+    assert response.status_code == 404
+
+
+@pytest.mark.asyncio
 async def test_health_check(client):
     response = await client.get("/api/v1/health")
     assert response.status_code == 200

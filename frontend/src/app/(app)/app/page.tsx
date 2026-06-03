@@ -5,6 +5,11 @@ export const metadata = {
   description: "Environmental health overview, AI recommendations, and intelligence maps.",
 };
 
-export default function AppDashboardPage() {
-  return <Dashboard />;
+export default async function AppDashboardPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ demo?: string }>;
+}) {
+  const params = await searchParams;
+  return <Dashboard forceDefaultLocation={params.demo === "1"} />;
 }

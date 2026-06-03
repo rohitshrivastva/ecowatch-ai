@@ -77,3 +77,10 @@ class HealthResponse(BaseModel):
     status: str
     version: str
     environment: str
+
+
+class GeoLocationResponse(BaseModel):
+    latitude: float = Field(..., ge=-90, le=90)
+    longitude: float = Field(..., ge=-180, le=180)
+    name: str
+    source: str = "ip"

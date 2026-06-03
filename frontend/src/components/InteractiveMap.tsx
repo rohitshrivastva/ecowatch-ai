@@ -211,7 +211,7 @@ export default function InteractiveMap({
         </button>
         {(detectingLocation || loading) && (
           <span className="text-sm text-eco-primary animate-pulse">
-            {detectingLocation ? "Detecting location..." : "Analyzing..."}
+            {detectingLocation ? "Finding your area..." : "Analyzing..."}
           </span>
         )}
       </div>

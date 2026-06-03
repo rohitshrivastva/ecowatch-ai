@@ -8,9 +8,16 @@ import AdvancedAnalytics from "@/components/dashboard/AdvancedAnalytics";
 import TrendsSection from "@/components/dashboard/TrendsSection";
 import { useEnvironmentalAnalysis } from "@/hooks/useEnvironmentalAnalysis";
 import { useHeatmap } from "@/hooks/useHeatmap";
+import { resolveInitialLocation } from "@/lib/geo";
 import type { LocationSelection } from "@/types/environment";
 
-export default function Dashboard() {
+interface DashboardProps {
+  forceDefaultLocation?: boolean;
+}
+
+export default function Dashboard({
+  forceDefaultLocation = false,
+}: DashboardProps) {
   const [selection, setSelection] = useState<LocationSelection | null>(null);
   const [detectingLocation, setDetectingLocation] = useState(true);
   const [trendsOpen, setTrendsOpen] = useState(false);
@@ -26,59 +33,27 @@ export default function Dashboard() {
 
   useEffect(() => {
     geoAbortRef.current = false;
+    setDetectingLocation(true);
 
-    if (typeof navigator === "undefined" || !navigator.geolocation) {
+    const controller = new AbortController();
+    const failSafeTimer = window.setTimeout(() => controller.abort(), 10000);
+
+    void (async () => {
+      const location = await resolveInitialLocation({
+        forceDefault: forceDefaultLocation,
+        signal: controller.signal,
+      });
+      if (geoAbortRef.current) return;
+      handleLocationSelect(location);
       setDetectingLocation(false);
-      return;
-    }
-
-    const failSafeTimer = window.setTimeout(() => {
-      if (!geoAbortRef.current) setDetectingLocation(false);
-    }, 20000);
-
-    navigator.geolocation.getCurrentPosition(
-      (position) => {
-        if (geoAbortRef.current) return;
-        const { latitude, longitude } = position.coords;
-        setDetectingLocation(false);
-
-        void (async () => {
-          let name = "Your location";
-          try {
-            const controller = new AbortController();
-            const nominatimTimer = window.setTimeout(() => controller.abort(), 5000);
-            const geoResp = await fetch(
-              `https://nominatim.openstreetmap.org/reverse?format=json&lat=${latitude}&lon=${longitude}`,
-              {
-                headers: { "Accept-Language": "en" },
-                signal: controller.signal,
-              }
-            );
-            window.clearTimeout(nominatimTimer);
-            if (geoResp.ok) {
-              const geoData = await geoResp.json();
-              if (typeof geoData.display_name === "string") {
-                name = geoData.display_name;
-              }
-            }
-          } catch {
-            /* default name */
-          }
-          if (geoAbortRef.current) return;
-          await handleLocationSelect({ latitude, longitude, name });
-        })();
-      },
-      () => {
-        if (!geoAbortRef.current) setDetectingLocation(false);
-      },
-      { enableHighAccuracy: false, timeout: 15000, maximumAge: 300000 }
-    );
+    })();
 
     return () => {
       geoAbortRef.current = true;
+      controller.abort();
       window.clearTimeout(failSafeTimer);
     };
-  }, [handleLocationSelect]);
+  }, [handleLocationSelect, forceDefaultLocation]);
 
   useEffect(() => {
     if (!selection) {
