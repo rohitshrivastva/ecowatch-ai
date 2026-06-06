@@ -188,10 +188,11 @@ export function useHeatmap() {
   }, [enabled, type, focal, fetchForBounds]);
 
   useEffect(() => {
+    if (!enabled) return;
     if (lastBounds && points.length > 0) {
       setRenderPoints(prepareRenderPoints(points, lastBounds, focal));
     }
-  }, [focal, lastBounds, points]);
+  }, [enabled, focal, lastBounds, points]);
 
   useEffect(() => {
     return () => {

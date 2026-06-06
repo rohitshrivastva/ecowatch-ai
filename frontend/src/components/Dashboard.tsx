@@ -1,11 +1,14 @@
 "use client";
 
 import { useState, useCallback, useEffect, useRef } from "react";
-import EnvironmentalHero from "@/components/dashboard/EnvironmentalHero";
+import LocationSearchBar from "@/components/dashboard/LocationSearchBar";
+import AirQualityPanel from "@/components/dashboard/AirQualityPanel";
+import BestTimeOutside from "@/components/dashboard/BestTimeOutside";
 import MapSection from "@/components/dashboard/MapSection";
 import InsightRecommendations from "@/components/dashboard/InsightRecommendations";
 import AdvancedAnalytics from "@/components/dashboard/AdvancedAnalytics";
 import TrendsSection from "@/components/dashboard/TrendsSection";
+import FavoritesPanel from "@/components/FavoritesPanel";
 import { useEnvironmentalAnalysis } from "@/hooks/useEnvironmentalAnalysis";
 import { useHeatmap } from "@/hooks/useHeatmap";
 import { resolveInitialLocation } from "@/lib/geo";
@@ -22,6 +25,7 @@ export default function Dashboard({
   const [detectingLocation, setDetectingLocation] = useState(true);
   const [trendsOpen, setTrendsOpen] = useState(false);
   const geoAbortRef = useRef(false);
+  const trendsRef = useRef<HTMLElement>(null);
   const heatmap = useHeatmap();
   const { setFocal } = heatmap;
 
@@ -56,7 +60,7 @@ export default function Dashboard({
   }, [handleLocationSelect, forceDefaultLocation]);
 
   useEffect(() => {
-    if (!selection) {
+    if (!selection || !heatmap.enabled) {
       heatmap.setFocal(null);
       return;
     }
@@ -67,23 +71,80 @@ export default function Dashboard({
       lng: selection.longitude,
       intensity,
     });
-  }, [selection, analysis?.risk?.score, setFocal]);
-
-  const locationLabel = analysis
-    ? analysis.location_name ||
-      `${analysis.location.latitude.toFixed(4)}, ${analysis.location.longitude.toFixed(4)}`
-    : selection?.name;
+  }, [
+    selection,
+    analysis?.risk?.score,
+    heatmap.enabled,
+    setFocal,
+    heatmap.setFocal,
+  ]);
 
   const isAnalyzing = loading || detectingLocation;
-  const showHeroLoading = isAnalyzing && !analysis;
+  const showPanelLoading = isAnalyzing && !analysis;
+
+  const heatmapProps = {
+    enabled: heatmap.enabled,
+    type: heatmap.type,
+    points: heatmap.points,
+    renderPoints: heatmap.renderPoints,
+    loading: heatmap.loading,
+    error: heatmap.error,
+    lastUpdated: heatmap.lastUpdated,
+    viewportZoom: heatmap.viewportZoom,
+    lastBounds: heatmap.lastBounds,
+    debugMode: heatmap.debugMode,
+    onToggleDebug: () => heatmap.setDebugMode((d) => !d),
+    onToggle: heatmap.setEnabled,
+    onTypeChange: heatmap.setType,
+    onBoundsChange: heatmap.onBoundsChange,
+  };
+
+  const openForecast = () => {
+    setTrendsOpen(true);
+    window.setTimeout(() => {
+      trendsRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+    }, 50);
+  };
+
+  const locationLabel =
+    analysis?.location_name ?? selection?.name ?? null;
 
   return (
     <div className="space-y-10">
-      <EnvironmentalHero
-        analysis={analysis}
-        loading={showHeroLoading}
-        locationLabel={locationLabel}
-      />
+      <div className="grid grid-cols-1 lg:grid-cols-[minmax(300px,380px)_1fr] gap-6 lg:gap-8 lg:items-start">
+        <div className="flex flex-col gap-4">
+          <LocationSearchBar
+            onLocationSelect={handleLocationSelect}
+            loading={loading}
+            detectingLocation={detectingLocation}
+          />
+          <AirQualityPanel
+            analysis={analysis}
+            loading={showPanelLoading}
+            locationName={locationLabel}
+            onForecastClick={openForecast}
+          />
+          <FavoritesPanel
+            compact
+            currentSelection={selection}
+            onSelectFavorite={handleLocationSelect}
+          />
+        </div>
+
+        <div className="h-[320px] sm:h-[380px] lg:h-[460px]">
+          <MapSection
+            onLocationSelect={handleLocationSelect}
+            selectedLocation={selection}
+            loading={loading}
+            detectingLocation={detectingLocation}
+            heatmap={heatmapProps}
+            embedded
+            mapVariant="iqair"
+            showFavorites={false}
+            className="h-full"
+          />
+        </div>
+      </div>
 
       {error && (
         <div className="glass-panel p-4 border-eco-danger/50 text-eco-danger text-sm">
@@ -92,40 +153,18 @@ export default function Dashboard({
         </div>
       )}
 
-      {analysis && (
-        <p className="text-xs text-eco-muted -mt-6">
-          Last updated: {new Date(analysis.timestamp).toLocaleString()}
-        </p>
+      {analysis?.best_time_outside && (
+        <BestTimeOutside data={analysis.best_time_outside} />
       )}
-
-      <MapSection
-        onLocationSelect={handleLocationSelect}
-        selectedLocation={selection}
-        loading={loading}
-        detectingLocation={detectingLocation}
-        heatmap={{
-          enabled: heatmap.enabled,
-          type: heatmap.type,
-          points: heatmap.points,
-          renderPoints: heatmap.renderPoints,
-          loading: heatmap.loading,
-          error: heatmap.error,
-          lastUpdated: heatmap.lastUpdated,
-          viewportZoom: heatmap.viewportZoom,
-          lastBounds: heatmap.lastBounds,
-          debugMode: heatmap.debugMode,
-          onToggleDebug: () => heatmap.setDebugMode((d) => !d),
-          onToggle: heatmap.setEnabled,
-          onTypeChange: heatmap.setType,
-          onBoundsChange: heatmap.onBoundsChange,
-        }}
-      />
 
       {analysis && (
         <>
           <InsightRecommendations analysis={analysis} loading={loading} />
           <AdvancedAnalytics analysis={analysis} />
-          <section className="glass-panel overflow-hidden">
+          <section
+            ref={trendsRef}
+            className="glass-panel overflow-hidden scroll-mt-24"
+          >
             <button
               type="button"
               onClick={() => setTrendsOpen((v) => !v)}
@@ -133,7 +172,7 @@ export default function Dashboard({
             >
               <div>
                 <h2 className="text-lg font-semibold text-eco-text">
-                  Historical Trends
+                  7-Day Forecast & Historical Trends
                 </h2>
                 <p className="text-sm text-eco-muted mt-0.5">
                   AQI, temperature, humidity & risk over time

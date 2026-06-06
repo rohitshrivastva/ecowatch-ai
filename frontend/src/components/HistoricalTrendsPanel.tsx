@@ -129,7 +129,7 @@ export default function HistoricalTrendsPanel({
               onClick={() => setPeriod(p.id)}
               className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-colors ${
                 period === p.id
-                  ? "bg-eco-primary text-eco-bg"
+                  ? "bg-eco-primary text-white"
                   : "bg-eco-surface-hover text-eco-muted hover:text-eco-text"
               }`}
             >
@@ -170,14 +170,15 @@ export default function HistoricalTrendsPanel({
                       <stop offset="95%" stopColor="#ef4444" stopOpacity={0} />
                     </linearGradient>
                   </defs>
-                  <CartesianGrid strokeDasharray="3 3" stroke="#1e293b" />
-                  <XAxis dataKey="label" stroke="#94a3b8" fontSize={10} />
-                  <YAxis stroke="#94a3b8" fontSize={10} />
+                  <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
+                  <XAxis dataKey="label" stroke="#64748b" fontSize={10} />
+                  <YAxis stroke="#64748b" fontSize={10} />
                   <Tooltip
                     contentStyle={{
-                      background: "#111827",
-                      border: "1px solid #1e293b",
+                      background: "#ffffff",
+                      border: "1px solid #e2e8f0",
                       borderRadius: 8,
+                      color: "#0f172a",
                     }}
                   />
                   <Area
@@ -196,14 +197,15 @@ export default function HistoricalTrendsPanel({
               </h4>
               <ResponsiveContainer width="100%" height={220}>
                 <LineChart data={tempSeries}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="#1e293b" />
-                  <XAxis dataKey="label" stroke="#94a3b8" fontSize={10} />
-                  <YAxis stroke="#94a3b8" fontSize={10} />
+                  <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
+                  <XAxis dataKey="label" stroke="#64748b" fontSize={10} />
+                  <YAxis stroke="#64748b" fontSize={10} />
                   <Tooltip
                     contentStyle={{
-                      background: "#111827",
-                      border: "1px solid #1e293b",
+                      background: "#ffffff",
+                      border: "1px solid #e2e8f0",
                       borderRadius: 8,
+                      color: "#0f172a",
                     }}
                   />
                   <Line

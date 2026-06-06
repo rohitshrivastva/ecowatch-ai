@@ -32,14 +32,15 @@ export function PollutionChart({ pollution }: PollutionChartProps) {
       <h3 className="text-lg font-semibold mb-4">Pollution Breakdown</h3>
       <ResponsiveContainer width="100%" height={250}>
         <BarChart data={data}>
-          <CartesianGrid strokeDasharray="3 3" stroke="#1e293b" />
-          <XAxis dataKey="name" stroke="#94a3b8" fontSize={12} />
-          <YAxis stroke="#94a3b8" fontSize={12} />
+          <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
+          <XAxis dataKey="name" stroke="#64748b" fontSize={12} />
+          <YAxis stroke="#64748b" fontSize={12} />
           <Tooltip
             contentStyle={{
-              background: "#111827",
-              border: "1px solid #1e293b",
+              background: "#ffffff",
+              border: "1px solid #e2e8f0",
               borderRadius: "8px",
+              color: "#0f172a",
             }}
           />
           <Bar dataKey="value" radius={[4, 4, 0, 0]}>
@@ -71,14 +72,15 @@ export function TrendChart({ environmental }: TrendChartProps) {
       <h3 className="text-lg font-semibold mb-4">Historical Trends</h3>
       <ResponsiveContainer width="100%" height={250}>
         <LineChart data={data}>
-          <CartesianGrid strokeDasharray="3 3" stroke="#1e293b" />
-          <XAxis dataKey="month" stroke="#94a3b8" fontSize={12} />
-          <YAxis stroke="#94a3b8" fontSize={12} />
+          <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
+          <XAxis dataKey="month" stroke="#64748b" fontSize={12} />
+          <YAxis stroke="#64748b" fontSize={12} />
           <Tooltip
             contentStyle={{
-              background: "#111827",
-              border: "1px solid #1e293b",
+              background: "#ffffff",
+              border: "1px solid #e2e8f0",
               borderRadius: "8px",
+              color: "#0f172a",
             }}
           />
           <Line

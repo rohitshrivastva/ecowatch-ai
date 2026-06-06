@@ -61,6 +61,18 @@ class Recommendation(BaseModel):
     actions: list[str]
 
 
+class BestTimeOutside(BaseModel):
+    time_window: str
+    environmental_status: str
+    why: str
+    suggestions: list[str]
+    suggested_activities: list[str] = Field(default_factory=list)
+    avoid_windows: list[str] = Field(default_factory=list)
+    rain_probability_pct: Optional[float] = None
+    show_umbrella: bool = False
+    thunderstorm_alert: bool = False
+
+
 class EnvironmentalAnalysis(BaseModel):
     location_id: Optional[int] = None
     location: Coordinates
@@ -70,6 +82,7 @@ class EnvironmentalAnalysis(BaseModel):
     environmental: EnvironmentalIndicators
     risk: RiskScore
     recommendations: list[Recommendation]
+    best_time_outside: Optional[BestTimeOutside] = None
     timestamp: datetime
 
 

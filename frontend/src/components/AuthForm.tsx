@@ -65,7 +65,7 @@ export default function AuthForm({ mode, onSubmit }: AuthFormProps) {
               type="text"
               value={fullName}
               onChange={(e) => setFullName(e.target.value)}
-              className="w-full px-4 py-2.5 rounded-lg bg-eco-bg border border-eco-border text-eco-text text-sm focus:outline-none focus:border-eco-primary"
+              className="w-full px-4 py-2.5 rounded-lg bg-white border border-eco-border text-eco-text text-sm focus:outline-none focus:border-eco-primary"
               placeholder="Jane Doe"
               autoComplete="name"
             />
@@ -79,7 +79,7 @@ export default function AuthForm({ mode, onSubmit }: AuthFormProps) {
             required
             value={email}
             onChange={(e) => setEmail(e.target.value)}
-            className="w-full px-4 py-2.5 rounded-lg bg-eco-bg border border-eco-border text-eco-text text-sm focus:outline-none focus:border-eco-primary"
+            className="w-full px-4 py-2.5 rounded-lg bg-white border border-eco-border text-eco-text text-sm focus:outline-none focus:border-eco-primary"
             placeholder="you@example.com"
             autoComplete="email"
           />
@@ -93,7 +93,7 @@ export default function AuthForm({ mode, onSubmit }: AuthFormProps) {
             minLength={8}
             value={password}
             onChange={(e) => setPassword(e.target.value)}
-            className="w-full px-4 py-2.5 rounded-lg bg-eco-bg border border-eco-border text-eco-text text-sm focus:outline-none focus:border-eco-primary"
+            className="w-full px-4 py-2.5 rounded-lg bg-white border border-eco-border text-eco-text text-sm focus:outline-none focus:border-eco-primary"
             placeholder="At least 8 characters"
             autoComplete={isRegister ? "new-password" : "current-password"}
           />
@@ -108,7 +108,7 @@ export default function AuthForm({ mode, onSubmit }: AuthFormProps) {
         <button
           type="submit"
           disabled={loading}
-          className="w-full py-2.5 rounded-lg bg-eco-primary text-eco-bg font-semibold text-sm hover:bg-eco-primary/90 disabled:opacity-50 transition-colors"
+          className="w-full py-2.5 rounded-lg bg-eco-primary text-white font-semibold text-sm hover:bg-eco-primary/90 disabled:opacity-50 transition-colors"
         >
           {loading ? "Please wait..." : isRegister ? "Create account" : "Sign in"}
         </button>

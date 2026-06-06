@@ -31,7 +31,7 @@ export default function MarketingPage() {
     <div>
       <section className="relative overflow-hidden">
         <div className="absolute inset-0 bg-gradient-to-b from-eco-primary/10 via-transparent to-transparent pointer-events-none" />
-        <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-20 lg:py-28 relative">
+        <div className="page-container py-20 lg:py-28 relative">
           <div className="max-w-3xl">
             <p className="text-sm font-medium text-eco-primary uppercase tracking-wider mb-4">
               AI Environmental Assistant
@@ -47,7 +47,7 @@ export default function MarketingPage() {
             <div className="flex flex-wrap gap-4">
               <Link
                 href={appUrl}
-                className="inline-flex items-center gap-2 px-6 py-3.5 rounded-xl bg-eco-primary text-eco-bg font-semibold hover:bg-eco-primary/90 transition-all hover:shadow-lg hover:shadow-eco-primary/20"
+                className="inline-flex items-center gap-2 px-6 py-3.5 rounded-xl bg-eco-primary text-white font-semibold hover:bg-eco-primary/90 transition-all hover:shadow-lg hover:shadow-eco-primary/20"
               >
                 Open Dashboard
                 <ArrowRight className="w-4 h-4" />
@@ -63,9 +63,9 @@ export default function MarketingPage() {
         </div>
       </section>
 
-      <section className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-16">
+      <section className="page-container py-16">
         <div className="glass-panel p-8 lg:p-12 border border-eco-primary/20">
-        <div className="aspect-video rounded-xl overflow-hidden border border-eco-border bg-eco-bg/80 relative">
+        <div className="aspect-video rounded-xl overflow-hidden border border-eco-border bg-eco-surface relative">
   <Image
     src="/images/dashboard-preview.png"
     alt="EcoWatch AI dashboard showing environmental score, AQI, map, and AI recommendations"
@@ -78,7 +78,7 @@ export default function MarketingPage() {
         </div>
       </section>
 
-      <section className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-16 lg:py-24">
+      <section className="page-container py-16 lg:py-24">
         <h2 className="text-2xl font-bold text-center mb-12">Built for clarity</h2>
         <div className="grid md:grid-cols-3 gap-8">
           {features.map(({ icon: Icon, title, description }) => (
@@ -96,7 +96,7 @@ export default function MarketingPage() {
         </div>
       </section>
 
-      <section className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 pb-24 text-center">
+      <section className="page-container pb-24 text-center">
         <h2 className="text-2xl font-bold mb-4">Ready to explore your environment?</h2>
         <p className="text-eco-muted mb-8 max-w-xl mx-auto">
           Open the dashboard for instant environmental overview, heatmaps, and

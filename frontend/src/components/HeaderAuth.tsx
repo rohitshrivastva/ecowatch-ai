@@ -23,7 +23,7 @@ export default function HeaderAuth() {
         </Link>
         <Link
           href="/register"
-          className="flex items-center gap-1.5 text-xs text-eco-bg bg-eco-primary hover:bg-eco-primary/90 transition-colors px-3 py-1.5 rounded-lg font-medium"
+          className="flex items-center gap-1.5 text-xs text-white bg-eco-primary hover:bg-eco-primary/90 transition-colors px-3 py-1.5 rounded-lg font-medium"
         >
           <UserPlus className="w-3.5 h-3.5" />
           Register

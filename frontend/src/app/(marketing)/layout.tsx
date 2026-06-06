@@ -10,8 +10,8 @@ export default function MarketingLayout({
 }) {
   return (
     <div className="min-h-screen flex flex-col">
-      <header className="border-b border-eco-border bg-eco-surface/50 backdrop-blur-xl sticky top-0 z-50">
-        <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-4 flex items-center justify-between">
+      <header className="border-b border-eco-border bg-white/90 backdrop-blur-xl sticky top-0 z-50 shadow-sm">
+        <div className="page-container py-4 flex items-center justify-between">
           <Link href="/" className="flex items-center gap-3">
             <div className="p-2 rounded-xl bg-eco-primary/10">
               <Leaf className="w-6 h-6 text-eco-primary" />
@@ -34,7 +34,7 @@ export default function MarketingLayout({
             </Link>
             <Link
               href={getAppUrl("/app")}
-              className="px-4 py-2 rounded-lg bg-eco-primary text-eco-bg text-sm font-semibold hover:bg-eco-primary/90 transition-colors"
+              className="px-4 py-2 rounded-lg bg-eco-primary text-white text-sm font-semibold hover:bg-eco-primary/90 transition-colors"
             >
               Open App
             </Link>
@@ -46,7 +46,7 @@ export default function MarketingLayout({
       <main className="flex-1">{children}</main>
 
       <footer className="border-t border-eco-border mt-auto">
-        <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-8 text-center text-xs text-eco-muted">
+        <div className="page-container py-8 text-center text-xs text-eco-muted">
           EcoWatch AI — Environmental Health Intelligence Platform
         </div>
       </footer>

@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
 import { Bookmark, MapPin, Trash2 } from "lucide-react";
+import clsx from "clsx";
 import {
   createFavorite,
   deleteFavorite,
@@ -15,9 +16,11 @@ import type { LocationSelection } from "@/types/environment";
 export default function FavoritesPanel({
   currentSelection,
   onSelectFavorite,
+  compact = false,
 }: {
   currentSelection: LocationSelection | null;
   onSelectFavorite: (loc: LocationSelection) => void;
+  compact?: boolean;
 }) {
   const [favorites, setFavorites] = useState<FavoriteLocation[]>([]);
   const [loading, setLoading] = useState(false);
@@ -68,7 +71,7 @@ export default function FavoritesPanel({
   }
 
   return (
-    <aside className="glass-panel p-4 space-y-4">
+    <aside className={clsx("glass-panel space-y-4", compact ? "p-3" : "p-4")}>
       <div className="flex items-center gap-2">
         <Bookmark className="w-5 h-5 text-eco-primary" />
         <h3 className="font-semibold">Favorite Locations</h3>
@@ -94,13 +97,13 @@ export default function FavoritesPanel({
             placeholder="e.g. Home, Office…"
             value={saveName}
             onChange={(e) => setSaveName(e.target.value)}
-            className="flex-1 px-3 py-2 rounded-lg bg-eco-bg border border-eco-border text-sm focus:outline-none focus:border-eco-primary/50"
+            className="flex-1 px-3 py-2 rounded-lg bg-white border border-eco-border text-sm focus:outline-none focus:border-eco-primary/50"
           />
           <button
             type="button"
             onClick={handleSave}
             disabled={!saveName.trim()}
-            className="px-3 py-2 rounded-lg bg-eco-primary text-eco-bg text-sm font-medium disabled:opacity-50"
+            className="px-3 py-2 rounded-lg bg-eco-primary text-white text-sm font-medium disabled:opacity-50"
           >
             Save
           </button>
@@ -110,11 +113,11 @@ export default function FavoritesPanel({
       {error && <p className="text-xs text-eco-danger">{error}</p>}
       {loading && <p className="text-xs text-eco-muted animate-pulse">Loading…</p>}
 
-      <ul className="space-y-2 max-h-80 overflow-y-auto">
+      <ul className={clsx("space-y-2 overflow-y-auto", compact ? "max-h-40" : "max-h-80")}>
         {favorites.map((fav) => (
           <li
             key={fav.id}
-            className="p-3 rounded-lg border border-eco-border bg-eco-bg/50 hover:border-eco-primary/40 transition-colors"
+            className="p-3 rounded-lg border border-eco-border bg-eco-surface hover:border-eco-primary/40 transition-colors"
           >
             <div className="flex justify-between gap-2">
               <button

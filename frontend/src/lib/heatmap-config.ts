@@ -56,13 +56,13 @@ export const HEATMAP_LAYER_OPTIONS: {
   { id: "environmental-risk", label: "Risk" },
 ];
 
-export function getHeatOptions(zoom: number) {
+export function getHeatOptions(zoom: number, vivid = false) {
   const scale = Math.max(0.85, Math.min(1.35, zoom / 11));
   return {
-    radius: Math.round(35 * scale),
-    blur: Math.round(30 * scale),
+    radius: Math.round((vivid ? 42 : 35) * scale),
+    blur: Math.round((vivid ? 28 : 30) * scale),
     maxZoom: 17,
-    minOpacity: 0.45,
+    minOpacity: vivid ? 0.55 : 0.45,
   };
 }
 

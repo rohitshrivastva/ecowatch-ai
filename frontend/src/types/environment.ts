@@ -44,6 +44,18 @@ export interface Recommendation {
   actions: string[];
 }
 
+export interface BestTimeOutside {
+  time_window: string;
+  environmental_status: string;
+  why: string;
+  suggestions: string[];
+  suggested_activities: string[];
+  avoid_windows: string[];
+  rain_probability_pct: number | null;
+  show_umbrella: boolean;
+  thunderstorm_alert: boolean;
+}
+
 export interface EnvironmentalAnalysis {
   location_id?: number | null;
   location: Coordinates;
@@ -53,6 +65,7 @@ export interface EnvironmentalAnalysis {
   environmental: EnvironmentalIndicators;
   risk: RiskScore;
   recommendations: Recommendation[];
+  best_time_outside?: BestTimeOutside | null;
   timestamp: string;
 }
 

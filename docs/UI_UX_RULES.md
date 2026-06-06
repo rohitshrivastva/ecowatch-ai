@@ -12,10 +12,10 @@ Users must understand **environmental health**, **risk level**, and **recommende
 
 ### Always visible after analysis
 
-1. Environmental score (0–100) and risk label
-2. Temperature and AQI
-3. AI insight summary (1–2 sentences)
-4. Interactive map
+1. Location search bar
+2. Compact metric tiles (pollution index, AQI, temperature, clouds, humidity) — icons + values, color-coded
+3. Interactive map (70% width on desktop)
+4. Best Time Outside
 5. Up to three recommendation cards (expand to view all)
 
 ### Hidden by default
@@ -28,11 +28,12 @@ Users must understand **environmental health**, **risk level**, and **recommende
 
 ## Layout order (`Dashboard.tsx`)
 
-1. `EnvironmentalHero` — skeleton + `EnvironmentalLoading` while analyzing
-2. `MapSection` — deferred mount (~80ms); `MapSkeleton` until interactive map loads
-3. `InsightRecommendations` — when `analysis` exists
-4. `AdvancedAnalytics` — collapsed; optional persist via `sessionStorage` key `ecowatch-advanced-open`
-5. Historical trends — separate collapsible section; lazy-load panel on expand
+1. `LocationSearchBar` — location search first
+2. **Overview row (30% / 70%)** — `EnvironmentMetricTiles` (icon + value, color-coded) + embedded `MapSection`
+3. `BestTimeOutside` — when `analysis.best_time_outside` exists
+4. `InsightRecommendations` + favorites sidebar
+5. `AdvancedAnalytics` — collapsed
+6. Historical trends — separate collapsible section
 
 Do **not** use a full-width blocking panel for geolocation in the hero area.
 
@@ -53,7 +54,7 @@ Defined in [`frontend/src/app/globals.css`](../frontend/src/app/globals.css) and
 
 | Token / class | Use |
 |---------------|-----|
-| `eco.*` colors | Dark theme only (no light-mode toggle) |
+| `eco.*` colors | Light theme design tokens |
 | `.hero-panel` | Primary focus — gradient glass, score + insight |
 | `.glass-panel` | Secondary sections |
 | `.metric-card` | Advanced analytics metrics |

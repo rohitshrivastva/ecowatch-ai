@@ -37,7 +37,7 @@ export default function RiskGauge({ risk }: RiskGaugeProps) {
             cy="50"
             r="45"
             fill="none"
-            stroke="#1e293b"
+            stroke="#e2e8f0"
             strokeWidth="8"
           />
           <circle

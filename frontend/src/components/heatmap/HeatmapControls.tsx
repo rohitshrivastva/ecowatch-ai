@@ -58,8 +58,8 @@ function HeatmapControls({
               className={clsx(
                 "flex-1 min-w-[calc(50%-4px)] sm:min-w-0 sm:flex-none px-2 py-2.5 rounded-md text-[11px] sm:text-xs font-medium transition-colors min-h-[44px]",
                 type === opt.id
-                  ? "bg-eco-primary text-eco-bg"
-                  : "bg-eco-bg border border-eco-border text-eco-muted hover:text-eco-text"
+                  ? "bg-eco-primary text-white"
+                  : "bg-eco-surface border border-eco-border text-eco-muted hover:text-eco-text"
               )}
             >
               {opt.label}

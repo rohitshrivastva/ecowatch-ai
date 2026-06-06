@@ -23,16 +23,23 @@ function removeLayer(map: L.Map, layerRef: React.MutableRefObject<HeatLayer | nu
   }
 }
 
+function mapHasSize(map: L.Map): boolean {
+  const size = map.getSize();
+  return size.x > 0 && size.y > 0;
+}
+
 export default function HeatmapLayer({
   points,
   visible,
   heatmapType,
   zoom,
+  vivid = false,
 }: {
   points: HeatmapPoint[];
   visible: boolean;
   heatmapType: HeatmapType;
   zoom: number;
+  vivid?: boolean;
 }) {
   const map = useMap();
   const layerRef = useRef<HeatLayer | null>(null);
@@ -44,31 +51,57 @@ export default function HeatmapLayer({
       return;
     }
 
-    const latlngs = toLatLngs(points);
-    const options: L.HeatMapOptions = {
-      ...getHeatOptions(zoom),
-      gradient: HEATMAP_GRADIENTS[heatmapType],
+    let cancelled = false;
+    let retryTimer: number | null = null;
+
+    const syncLayer = () => {
+      if (cancelled) return;
+
+      if (!mapHasSize(map)) {
+        map.invalidateSize();
+        retryTimer = window.setTimeout(syncLayer, 50);
+        return;
+      }
+
+      const latlngs = toLatLngs(points);
+      const options: L.HeatMapOptions = {
+        ...getHeatOptions(zoom, vivid),
+        gradient: HEATMAP_GRADIENTS[heatmapType],
+      };
+
+      const typeChanged = typeRef.current !== heatmapType;
+      typeRef.current = heatmapType;
+
+      try {
+        if (layerRef.current && !typeChanged) {
+          layerRef.current.setLatLngs(latlngs);
+          layerRef.current.setOptions(options);
+          return;
+        }
+
+        removeLayer(map, layerRef);
+        const layer = L.heatLayer(latlngs, options) as HeatLayer;
+        layer.addTo(map);
+        layerRef.current = layer;
+      } catch {
+        removeLayer(map, layerRef);
+        if (!cancelled) {
+          retryTimer = window.setTimeout(syncLayer, 100);
+        }
+      }
     };
 
-    const typeChanged = typeRef.current !== heatmapType;
-    typeRef.current = heatmapType;
-
-    if (layerRef.current && !typeChanged) {
-      layerRef.current.setLatLngs(latlngs);
-      layerRef.current.setOptions(options);
-      return;
-    }
-
-    removeLayer(map, layerRef);
-    const layer = L.heatLayer(latlngs, options) as HeatLayer;
-    layer.addTo(map);
-    layerRef.current = layer;
     map.invalidateSize();
+    syncLayer();
+    map.on("resize", syncLayer);
 
     return () => {
+      cancelled = true;
+      if (retryTimer) window.clearTimeout(retryTimer);
+      map.off("resize", syncLayer);
       removeLayer(map, layerRef);
     };
-  }, [map, points, visible, heatmapType, zoom]);
+  }, [map, points, visible, heatmapType, zoom, vivid]);
 
   return null;
 }

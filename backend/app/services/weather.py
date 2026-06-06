@@ -1,7 +1,11 @@
-import httpx
+import math
+from datetime import datetime, timezone, timedelta
 from typing import Optional
 
+import httpx
+
 from app.config import get_settings
+from app.utils.aqi import us_epa_aqi_from_components
 
 
 AQI_LABELS = {
@@ -19,6 +23,90 @@ def aqi_label(aqi: int) -> str:
         if low <= aqi <= high:
             return label
     return "Hazardous"
+
+
+_WAQI_POLLUTANT_KEYS = {
+    "pm25": "pm2_5",
+    "pm10": "pm10",
+    "no2": "no2",
+    "o3": "o3",
+    "so2": "so2",
+    "co": "co",
+}
+
+
+def _waqi_components(iaqi: dict) -> dict:
+    """Extract OpenWeather-style component µg/m³ values from WAQI iaqi."""
+    components: dict = {}
+    for waqi_key, component_key in _WAQI_POLLUTANT_KEYS.items():
+        value = iaqi.get(waqi_key, {}).get("v")
+        if value is not None:
+            components[component_key] = float(value)
+    return components
+
+
+# WAQI iaqi concentrations sometimes disagree with the station's overall AQI (e.g. Letterkenny).
+WAQI_IAQI_TOLERANCE = 20
+
+
+def _pollution_dict(
+    aqi: int,
+    pm25: float,
+    pm10: float,
+    no2: float,
+    co: float,
+    ozone: float,
+) -> dict:
+    return {
+        "aqi": aqi,
+        "aqi_label": aqi_label(aqi),
+        "pm25": pm25,
+        "pm10": pm10,
+        "no2": no2,
+        "co": co,
+        "ozone": ozone,
+    }
+
+
+def merge_waqi_and_openweather(waqi_data: dict, openweather: dict) -> dict:
+    """
+    Prefer WAQI station AQI when iaqi concentrations disagree with the station index.
+    Use OpenWeather pollutant readings when WAQI iaqi is inconsistent (closer to model truth).
+    """
+    iaqi = waqi_data.get("iaqi", {})
+    components = _waqi_components(iaqi)
+    native_aqi = int(waqi_data.get("aqi", 50))
+
+    if components:
+        computed = us_epa_aqi_from_components(components)
+        if abs(computed - native_aqi) <= WAQI_IAQI_TOLERANCE:
+            return _pollution_dict(
+                computed,
+                components.get("pm2_5", iaqi.get("pm25", {}).get("v", 0)),
+                components.get("pm10", iaqi.get("pm10", {}).get("v", 0)),
+                components.get("no2", iaqi.get("no2", {}).get("v", 0)),
+                components.get("co", iaqi.get("co", {}).get("v", 0)),
+                components.get("o3", iaqi.get("o3", {}).get("v", 0)),
+            )
+
+    if openweather:
+        return _pollution_dict(
+            native_aqi,
+            openweather["pm25"],
+            openweather["pm10"],
+            openweather["no2"],
+            openweather["co"],
+            openweather["ozone"],
+        )
+
+    return _pollution_dict(
+        native_aqi,
+        components.get("pm2_5", iaqi.get("pm25", {}).get("v", 0)),
+        components.get("pm10", iaqi.get("pm10", {}).get("v", 0)),
+        components.get("no2", iaqi.get("no2", {}).get("v", 0)),
+        components.get("co", iaqi.get("co", {}).get("v", 0)),
+        components.get("o3", iaqi.get("o3", {}).get("v", 0)),
+    )
 
 
 class WeatherService:
@@ -59,7 +147,6 @@ class WeatherService:
             }
 
     def _mock_weather(self, lat: float, lon: float) -> dict:
-        import math
         seed = abs(int(lat * 100) + int(lon * 100))
         temp = 20 + (seed % 20) - 5
         return {
@@ -71,21 +158,98 @@ class WeatherService:
             "description": "Partly Cloudy" if seed % 2 else "Clear Sky",
         }
 
+    async def get_forecast(self, lat: float, lon: float) -> dict:
+        """Hourly-style slots for best-time-outside (3h steps from OpenWeather forecast)."""
+        if not self.settings.openweather_api_key:
+            return self._mock_forecast(lat, lon)
+
+        async with httpx.AsyncClient(timeout=15.0) as client:
+            resp = await client.get(
+                f"{self.base_url}/forecast",
+                params={
+                    "lat": lat,
+                    "lon": lon,
+                    "appid": self.settings.openweather_api_key,
+                    "units": "metric",
+                },
+            )
+            resp.raise_for_status()
+            data = resp.json()
+
+        tz_offset = data.get("city", {}).get("timezone", 0)
+        slots = []
+        for entry in data.get("list", [])[:8]:
+            weather = entry.get("weather", [{}])[0]
+            rain = entry.get("rain", {})
+            rain_mm = float(rain.get("3h", 0) or 0)
+            slots.append(
+                {
+                    "timestamp": datetime.fromtimestamp(
+                        entry["dt"], tz=timezone.utc
+                    ).isoformat(),
+                    "temp": float(entry["main"]["temp"]),
+                    "feels_like": float(entry["main"]["feels_like"]),
+                    "pop": float(entry.get("pop", 0)),
+                    "weather_main": weather.get("main", "Clear"),
+                    "description": weather.get("description", ""),
+                    "wind_speed": float(entry.get("wind", {}).get("speed", 0)),
+                    "rain_mm": rain_mm,
+                }
+            )
+        return {"timezone_offset": tz_offset, "slots": slots}
+
+    def _mock_forecast(self, lat: float, lon: float) -> dict:
+        seed = abs(int(lat * 1000) + int(lon * 1000))
+        now = datetime.now(timezone.utc)
+        slots = []
+        for i in range(8):
+            hour = now + timedelta(hours=3 * i)
+            hour_seed = (seed + i * 17) % 100
+            pop = max(0.0, min(1.0, (hour_seed - 40) / 60))
+            if 10 <= hour.hour <= 14:
+                pop = min(1.0, pop + 0.35)
+            if 17 <= hour.hour <= 20:
+                pop = max(0.0, pop - 0.25)
+            main = "Clear"
+            desc = "clear sky"
+            if pop > 0.75:
+                main, desc = "Thunderstorm", "thunderstorm with rain"
+            elif pop > 0.5:
+                main, desc = "Rain", "heavy intensity rain"
+            elif pop > 0.25:
+                main, desc = "Drizzle", "light intensity drizzle"
+            temp = 22 + math.sin((hour.hour - 6) / 12 * math.pi) * 6 + (seed % 5) - 2
+            slots.append(
+                {
+                    "timestamp": hour.isoformat(),
+                    "temp": round(temp, 1),
+                    "feels_like": round(temp + 1, 1),
+                    "pop": round(pop, 2),
+                    "weather_main": main,
+                    "description": desc,
+                    "wind_speed": round(2 + (hour_seed % 10) / 3, 1),
+                    "rain_mm": round(pop * 8, 1),
+                }
+            )
+        return {"timezone_offset": 19800, "slots": slots}
+
 
 class PollutionService:
     def __init__(self):
         self.settings = get_settings()
 
     async def get_pollution(self, lat: float, lon: float) -> dict:
+        openweather = None
         if self.settings.openweather_api_key:
-            result = await self._fetch_openweather(lat, lon)
-            if result:
-                return result
+            openweather = await self._fetch_openweather(lat, lon)
 
         if self.settings.waqi_api_key:
-            result = await self._fetch_waqi(lat, lon)
-            if result:
-                return result
+            waqi_data = await self._fetch_waqi_raw(lat, lon)
+            if waqi_data:
+                return merge_waqi_and_openweather(waqi_data, openweather)
+
+        if openweather:
+            return openweather
 
         return self._mock_pollution(lat, lon)
 
@@ -99,22 +263,20 @@ class PollutionService:
                 if resp.status_code != 200:
                     return None
                 components = resp.json()["list"][0]
-                aqi_map = {1: 25, 2: 75, 3: 125, 4: 175, 5: 250}
-                aqi = aqi_map.get(components["main"]["aqi"], 100)
                 c = components["components"]
-                return {
-                    "aqi": aqi,
-                    "aqi_label": aqi_label(aqi),
-                    "pm25": c.get("pm2_5", 0),
-                    "pm10": c.get("pm10", 0),
-                    "no2": c.get("no2", 0),
-                    "co": c.get("co", 0),
-                    "ozone": c.get("o3", 0),
-                }
+                aqi = us_epa_aqi_from_components(c)
+                return _pollution_dict(
+                    aqi,
+                    c.get("pm2_5", 0),
+                    c.get("pm10", 0),
+                    c.get("no2", 0),
+                    c.get("co", 0),
+                    c.get("o3", 0),
+                )
         except Exception:
             return None
 
-    async def _fetch_waqi(self, lat: float, lon: float) -> Optional[dict]:
+    async def _fetch_waqi_raw(self, lat: float, lon: float) -> Optional[dict]:
         try:
             async with httpx.AsyncClient(timeout=15.0) as client:
                 resp = await client.get(
@@ -124,21 +286,16 @@ class PollutionService:
                 if resp.status_code != 200:
                     return None
                 data = resp.json().get("data", {})
-                if not data:
-                    return None
-                aqi = data.get("aqi", 50)
-                iaqi = data.get("iaqi", {})
-                return {
-                    "aqi": aqi,
-                    "aqi_label": aqi_label(aqi),
-                    "pm25": iaqi.get("pm25", {}).get("v", 0),
-                    "pm10": iaqi.get("pm10", {}).get("v", 0),
-                    "no2": iaqi.get("no2", {}).get("v", 0),
-                    "co": iaqi.get("co", {}).get("v", 0),
-                    "ozone": iaqi.get("o3", {}).get("v", 0),
-                }
+                return data or None
         except Exception:
             return None
+
+    async def _fetch_waqi(self, lat: float, lon: float) -> Optional[dict]:
+        waqi_data = await self._fetch_waqi_raw(lat, lon)
+        if not waqi_data:
+            return None
+        openweather = await self._fetch_openweather(lat, lon)
+        return merge_waqi_and_openweather(waqi_data, openweather)
 
     def _mock_pollution(self, lat: float, lon: float) -> dict:
         seed = abs(int(lat * 1000) + int(lon * 1000))

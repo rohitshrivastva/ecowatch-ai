@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState, useCallback } from "react";
 import L from "leaflet";
+import type { LatLng, LatLngBounds } from "leaflet";
 import {
   MapContainer,
   TileLayer,
@@ -11,6 +12,7 @@ import {
   Rectangle,
 } from "react-leaflet";
 import { Search, MapPin, Square } from "lucide-react";
+import clsx from "clsx";
 import type { LocationSelection } from "@/types/environment";
 import type { HeatmapBounds, HeatmapPoint, HeatmapType } from "@/types/intelligence";
 import HeatmapLayer from "@/components/HeatmapLayer";
@@ -34,11 +36,17 @@ function MapClickHandler({
   return null;
 }
 
-function MapController({ center }: { center: [number, number] }) {
+function MapController({
+  center,
+  zoom = 11,
+}: {
+  center: [number, number];
+  zoom?: number;
+}) {
   const map = useMap();
   useEffect(() => {
-    map.flyTo(center, 12, { duration: 1.5 });
-  }, [center, map]);
+    map.flyTo(center, zoom, { duration: 1.2 });
+  }, [center, map, zoom]);
   return null;
 }
 
@@ -70,6 +78,44 @@ function MapBoundsWatcher({
   return null;
 }
 
+function HeatmapCleanup({ enabled }: { enabled: boolean }) {
+  const map = useMap();
+  useEffect(() => {
+    if (enabled) return;
+    map.eachLayer((layer) => {
+      const canvas = (layer as L.Layer & { _canvas?: HTMLCanvasElement })._canvas;
+      if (canvas?.classList.contains("leaflet-heatmap-layer")) {
+        map.removeLayer(layer);
+      }
+    });
+  }, [map, enabled]);
+  return null;
+}
+
+function MapInvalidateOnMount() {
+  const map = useMap();
+  useEffect(() => {
+    const refresh = () => map.invalidateSize();
+    refresh();
+    const raf = requestAnimationFrame(refresh);
+    const timer = window.setTimeout(refresh, 150);
+    const container = map.getContainer();
+    const observer =
+      typeof ResizeObserver !== "undefined" && container
+        ? new ResizeObserver(refresh)
+        : null;
+    observer?.observe(container);
+    window.addEventListener("resize", refresh);
+    return () => {
+      cancelAnimationFrame(raf);
+      window.clearTimeout(timer);
+      observer?.disconnect();
+      window.removeEventListener("resize", refresh);
+    };
+  }, [map]);
+  return null;
+}
+
 export interface HeatmapMapProps {
   enabled: boolean;
   type: HeatmapType;
@@ -93,6 +139,11 @@ interface InteractiveMapProps {
   loading?: boolean;
   detectingLocation?: boolean;
   heatmap: HeatmapMapProps;
+  /** Map-only layout without top search toolbar (search lives in dashboard). */
+  embedded?: boolean;
+  /** IQAir-style dark map with minimal chrome. */
+  mapVariant?: "default" | "iqair";
+  className?: string;
 }
 
 export default function InteractiveMap({
@@ -101,11 +152,14 @@ export default function InteractiveMap({
   loading,
   detectingLocation,
   heatmap,
+  embedded = false,
+  mapVariant = "default",
+  className,
 }: InteractiveMapProps) {
   const [searchQuery, setSearchQuery] = useState("");
   const [drawMode, setDrawMode] = useState(false);
-  const [drawStart, setDrawStart] = useState<L.LatLng | null>(null);
-  const [drawBounds, setDrawBounds] = useState<L.LatLngBounds | null>(null);
+  const [drawStart, setDrawStart] = useState<LatLng | null>(null);
+  const [drawBounds, setDrawBounds] = useState<LatLngBounds | null>(null);
   const [mapCenter, setMapCenter] = useState<[number, number]>(defaultCenter);
   const searchTimeout = useRef<NodeJS.Timeout>();
 
@@ -181,53 +235,81 @@ export default function InteractiveMap({
     iconAnchor: [12, 12],
   });
 
-  return (
-    <div className="glass-panel overflow-hidden">
-      <div className="p-4 border-b border-eco-border flex flex-wrap gap-3 items-center">
-        <div className="relative flex-1 min-w-[200px]">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-eco-muted" />
-          <input
-            type="text"
-            placeholder="Search city or location..."
-            value={searchQuery}
-            onChange={(e) => handleSearch(e.target.value)}
-            className="w-full pl-10 pr-4 py-2.5 bg-eco-bg border border-eco-border rounded-lg text-sm text-eco-text placeholder:text-eco-muted focus:outline-none focus:border-eco-primary/50"
-          />
-        </div>
-        <button
-          onClick={() => {
-            setDrawMode(!drawMode);
-            setDrawStart(null);
-            setDrawBounds(null);
-          }}
-          className={`flex items-center gap-2 px-4 py-2.5 rounded-lg text-sm font-medium transition-colors ${
-            drawMode
-              ? "bg-eco-primary text-white"
-              : "bg-eco-surface-hover text-eco-muted hover:text-eco-text"
-          }`}
-        >
-          <Square className="w-4 h-4" />
-          {drawMode ? "Click corners to draw" : "Draw Area"}
-        </button>
-        {(detectingLocation || loading) && (
-          <span className="text-sm text-eco-primary animate-pulse">
-            {detectingLocation ? "Finding your area..." : "Analyzing..."}
-          </span>
-        )}
-      </div>
+  const isIqair = mapVariant === "iqair";
 
-      <div className="relative h-[320px] sm:h-[400px] lg:h-[480px]">
+  return (
+    <div
+      className={clsx(
+        embedded &&
+          (isIqair
+            ? "h-full rounded-2xl overflow-hidden shadow-lg ring-1 ring-slate-200/80 iqair-map"
+            : "h-[320px] lg:h-[480px] glass-panel overflow-hidden"),
+        !embedded && "glass-panel overflow-hidden",
+        className
+      )}
+    >
+      {!embedded && (
+        <div className="p-4 border-b border-eco-border flex flex-wrap gap-3 items-center">
+          <div className="relative flex-1 min-w-[200px]">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-eco-muted" />
+            <input
+              type="text"
+              placeholder="Search city or location..."
+              value={searchQuery}
+              onChange={(e) => handleSearch(e.target.value)}
+              className="w-full pl-10 pr-4 py-2.5 bg-white border border-eco-border rounded-lg text-sm text-eco-text placeholder:text-eco-muted focus:outline-none focus:border-eco-primary/50 shadow-sm"
+            />
+          </div>
+          <button
+            onClick={() => {
+              setDrawMode(!drawMode);
+              setDrawStart(null);
+              setDrawBounds(null);
+            }}
+            className={`flex items-center gap-2 px-4 py-2.5 rounded-lg text-sm font-medium transition-colors ${
+              drawMode
+                ? "bg-eco-primary text-white"
+                : "bg-eco-surface-hover text-eco-muted hover:text-eco-text"
+            }`}
+          >
+            <Square className="w-4 h-4" />
+            {drawMode ? "Click corners to draw" : "Draw Area"}
+          </button>
+          {(detectingLocation || loading) && (
+            <span className="text-sm text-eco-primary animate-pulse">
+              {detectingLocation ? "Finding your area..." : "Analyzing..."}
+            </span>
+          )}
+        </div>
+      )}
+
+      <div
+        className={clsx(
+          "relative w-full",
+          embedded
+            ? isIqair
+              ? "h-full"
+              : "h-[320px] lg:h-[480px]"
+            : "h-[320px] sm:h-[400px] lg:h-[480px]"
+        )}
+      >
         <MapContainer
           center={defaultCenter}
           zoom={5}
-          className="h-full w-full"
-          zoomControl={true}
+          className="h-full w-full z-0"
+          zoomControl={isIqair}
         >
           <TileLayer
             attribution='&copy; <a href="https://carto.com/">CARTO</a>'
-            url="https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png"
+            url={
+              isIqair
+                ? "https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png"
+                : "https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png"
+            }
           />
-          <MapController center={mapCenter} />
+          <MapController center={mapCenter} zoom={selectedLocation ? 10 : 5} />
+          <MapInvalidateOnMount />
+          <HeatmapCleanup enabled={heatmap.enabled} />
           <MapBoundsWatcher onBoundsChange={heatmap.onBoundsChange} />
           {heatmap.enabled && heatmap.renderPoints.length > 0 && (
             <HeatmapLayer
@@ -235,6 +317,7 @@ export default function InteractiveMap({
               visible={heatmap.enabled}
               heatmapType={heatmap.type}
               zoom={heatmap.viewportZoom}
+              vivid={isIqair}
             />
           )}
           <HeatmapTooltip
@@ -262,29 +345,104 @@ export default function InteractiveMap({
         </MapContainer>
 
         {heatmap.loading && heatmap.enabled && (
-          <div className="absolute inset-0 z-[999] bg-eco-bg/40 flex items-center justify-center pointer-events-none">
+          <div className="absolute inset-0 z-[999] bg-white/50 flex items-center justify-center pointer-events-none">
             <span className="text-sm text-eco-primary animate-pulse">
               Loading heatmap…
             </span>
           </div>
         )}
 
-        <div className="absolute z-[1000] left-3 right-3 bottom-3 sm:left-auto sm:right-3 sm:top-3 sm:bottom-auto flex flex-col gap-2 sm:items-end pointer-events-none">
-          <div className="pointer-events-auto w-full sm:w-auto">
-            <HeatmapControls
-              enabled={heatmap.enabled}
-              type={heatmap.type}
-              loading={heatmap.loading}
-              onToggle={heatmap.onToggle}
-              onTypeChange={heatmap.onTypeChange}
-            />
-          </div>
-          {heatmap.enabled && (
-            <div className="pointer-events-auto w-full sm:w-auto hidden sm:block">
-              <HeatmapLegend type={heatmap.type} lastUpdated={heatmap.lastUpdated} />
+        <div
+          className={clsx(
+            "absolute z-[1000] flex flex-wrap gap-2 pointer-events-none",
+            isIqair
+              ? "hidden"
+              : "left-3 right-3 top-3 sm:items-start"
+          )}
+        >
+          {embedded && !isIqair && (
+            <div className="pointer-events-auto">
+              <button
+                type="button"
+                onClick={() => {
+                  setDrawMode(!drawMode);
+                  setDrawStart(null);
+                  setDrawBounds(null);
+                }}
+                className={`flex items-center gap-2 px-3 py-2 rounded-lg text-xs font-medium transition-colors shadow-sm ${
+                  drawMode
+                    ? "bg-eco-primary text-white"
+                    : "bg-white border border-eco-border text-eco-muted hover:text-eco-text"
+                }`}
+              >
+                <Square className="w-3.5 h-3.5" />
+                {drawMode ? "Draw corners" : "Draw area"}
+              </button>
+            </div>
+          )}
+          {!isIqair && (
+            <div className="pointer-events-auto w-full sm:w-auto sm:ml-auto flex flex-col gap-2 sm:items-end">
+              <HeatmapControls
+                enabled={heatmap.enabled}
+                type={heatmap.type}
+                loading={heatmap.loading}
+                onToggle={heatmap.onToggle}
+                onTypeChange={heatmap.onTypeChange}
+              />
+              {heatmap.enabled && (
+                <div className="hidden sm:block">
+                  <HeatmapLegend
+                    type={heatmap.type}
+                    lastUpdated={heatmap.lastUpdated}
+                  />
+                </div>
+              )}
             </div>
           )}
         </div>
+
+        {isIqair && (
+          <>
+            <div className="absolute top-3 right-3 z-[1000] rounded-lg bg-white/95 backdrop-blur-sm px-3 py-1.5 text-xs font-semibold text-slate-700 shadow-md pointer-events-none">
+              EcoWatch Map
+            </div>
+            <div className="absolute bottom-3 right-14 z-[1000] pointer-events-auto">
+              <button
+                type="button"
+                onClick={() => {
+                  if (!heatmap.enabled) heatmap.onTypeChange("aqi");
+                  heatmap.onToggle(!heatmap.enabled);
+                }}
+                className={clsx(
+                  "rounded-lg px-3 py-2 text-xs font-medium shadow-md border transition-colors",
+                  heatmap.enabled
+                    ? "bg-emerald-600 text-white border-emerald-600"
+                    : "bg-white text-slate-700 border-slate-200 hover:border-emerald-400"
+                )}
+              >
+                {heatmap.enabled ? "Hide AQI layer" : "Show AQI layer"}
+              </button>
+            </div>
+            {heatmap.enabled && (
+              <div className="absolute bottom-14 left-3 z-[1000] rounded-lg bg-white/95 backdrop-blur-sm px-3 py-2 shadow-md pointer-events-none">
+                <p className="text-[10px] font-semibold text-slate-600 mb-1.5 uppercase tracking-wide">
+                  Air quality
+                </p>
+                <div className="flex h-2 w-36 rounded-full overflow-hidden">
+                  <span className="flex-1 bg-emerald-500" />
+                  <span className="flex-1 bg-lime-400" />
+                  <span className="flex-1 bg-amber-400" />
+                  <span className="flex-1 bg-orange-500" />
+                  <span className="flex-1 bg-red-500" />
+                </div>
+                <div className="flex justify-between text-[9px] text-slate-500 mt-1">
+                  <span>Good</span>
+                  <span>Hazardous</span>
+                </div>
+              </div>
+            )}
+          </>
+        )}
 
         {heatmap.error && heatmap.enabled && (
           <div className="absolute top-3 left-3 z-[1000] glass-panel px-3 py-2 text-xs text-eco-danger max-w-[220px]">
@@ -292,24 +450,28 @@ export default function InteractiveMap({
           </div>
         )}
 
-        <HeatmapDebugPanel
-          enabled={heatmap.enabled}
-          type={heatmap.type}
-          apiPointCount={heatmap.points.length}
-          renderPointCount={heatmap.renderPoints.length}
-          zoom={heatmap.viewportZoom}
-          bounds={heatmap.lastBounds}
-          points={heatmap.renderPoints}
-          debugMode={heatmap.debugMode}
-          onToggleDebug={heatmap.onToggleDebug}
-        />
+        {!isIqair && (
+          <HeatmapDebugPanel
+            enabled={heatmap.enabled}
+            type={heatmap.type}
+            apiPointCount={heatmap.points.length}
+            renderPointCount={heatmap.renderPoints.length}
+            zoom={heatmap.viewportZoom}
+            bounds={heatmap.lastBounds}
+            points={heatmap.renderPoints}
+            debugMode={heatmap.debugMode}
+            onToggleDebug={heatmap.onToggleDebug}
+          />
+        )}
 
-        <div className="absolute bottom-4 left-4 glass-panel px-3 py-2 text-xs text-eco-muted z-[1000]">
-          <div className="flex items-center gap-2">
-            <MapPin className="w-3 h-3 text-eco-primary" />
-            Click map to select • Search or draw an area
+        {!isIqair && (
+          <div className="absolute bottom-4 left-4 glass-panel px-3 py-2 text-xs text-eco-muted z-[1000]">
+            <div className="flex items-center gap-2">
+              <MapPin className="w-3 h-3 text-eco-primary" />
+              Click map to select • Search or draw an area
+            </div>
           </div>
-        </div>
+        )}
       </div>
     </div>
   );
