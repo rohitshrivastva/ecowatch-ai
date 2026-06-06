@@ -61,6 +61,12 @@ class Recommendation(BaseModel):
     actions: list[str]
 
 
+class ForecastTimelineSlot(BaseModel):
+    label: str
+    pop_pct: float
+    kind: str
+
+
 class BestTimeOutside(BaseModel):
     time_window: str
     environmental_status: str
@@ -68,9 +74,14 @@ class BestTimeOutside(BaseModel):
     suggestions: list[str]
     suggested_activities: list[str] = Field(default_factory=list)
     avoid_windows: list[str] = Field(default_factory=list)
+    timeline: list[ForecastTimelineSlot] = Field(default_factory=list)
     rain_probability_pct: Optional[float] = None
+    wind_speed: Optional[float] = None
     show_umbrella: bool = False
     thunderstorm_alert: bool = False
+    local_time: Optional[str] = None
+    timezone_offset_seconds: Optional[int] = None
+    timezone_label: Optional[str] = None
 
 
 class EnvironmentalAnalysis(BaseModel):

@@ -88,6 +88,14 @@ export function humidityTone(humidity: number): MetricTone {
   return "danger";
 }
 
+/** OpenWeather wind speed in m/s. */
+export function windSpeedTone(speed: number): MetricTone {
+  if (speed <= 5) return "good";
+  if (speed <= 10) return "moderate";
+  if (speed <= 15) return "warning";
+  return "danger";
+}
+
 export function cloudCoverageTone(coverage: number): MetricTone {
   if (coverage <= 30) return "good";
   if (coverage <= 55) return "moderate";

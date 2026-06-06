@@ -44,6 +44,12 @@ export interface Recommendation {
   actions: string[];
 }
 
+export interface ForecastTimelineSlot {
+  label: string;
+  pop_pct: number;
+  kind: "best" | "good" | "moderate" | "poor" | "avoid";
+}
+
 export interface BestTimeOutside {
   time_window: string;
   environmental_status: string;
@@ -51,9 +57,14 @@ export interface BestTimeOutside {
   suggestions: string[];
   suggested_activities: string[];
   avoid_windows: string[];
+  timeline?: ForecastTimelineSlot[];
   rain_probability_pct: number | null;
+  wind_speed?: number | null;
   show_umbrella: boolean;
   thunderstorm_alert: boolean;
+  local_time?: string | null;
+  timezone_offset_seconds?: number | null;
+  timezone_label?: string | null;
 }
 
 export interface EnvironmentalAnalysis {

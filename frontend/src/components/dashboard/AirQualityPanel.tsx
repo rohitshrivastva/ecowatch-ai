@@ -3,6 +3,7 @@
 import { memo } from "react";
 import {
   Activity,
+  AirVent,
   Cloud,
   Droplets,
   Smile,
@@ -21,6 +22,7 @@ import {
   mainPollutant,
   pollutionIndexTone,
   temperatureTone,
+  windSpeedTone,
   type MetricTone,
 } from "@/lib/metric-colors";
 import { Skeleton } from "@/components/ui/Skeleton";
@@ -108,9 +110,9 @@ function AirQualityPanel({
     return (
       <div className="space-y-4">
         <Skeleton className="h-6 w-3/4" />
-        <div className="flex gap-1">
-          {Array.from({ length: 5 }).map((_, i) => (
-            <Skeleton key={i} className="h-16 flex-1 rounded-xl" />
+        <div className="grid grid-cols-3 gap-1">
+          {Array.from({ length: 6 }).map((_, i) => (
+            <Skeleton key={i} className="h-16 w-full rounded-xl" />
           ))}
         </div>
         <Skeleton className="h-52 w-full rounded-3xl" />
@@ -141,7 +143,7 @@ function AirQualityPanel({
         {city} air quality index (AQI)
       </h1>
 
-      <div className="flex gap-1 w-full">
+      <div className="grid grid-cols-3 gap-1 w-full">
         <MetricPill
           icon={Activity}
           value={String(analysis.risk.score)}
@@ -149,7 +151,7 @@ function AirQualityPanel({
           label="Pollution index"
         />
         <MetricPill
-          icon={Wind}
+          icon={AirVent}
           value={String(analysis.air_pollution.aqi)}
           tone={aqiToneValue}
           label="AQI"
@@ -159,6 +161,12 @@ function AirQualityPanel({
           value={`${Math.round(analysis.weather.temperature)}°`}
           tone={temperatureTone(analysis.weather.temperature)}
           label="Temperature"
+        />
+        <MetricPill
+          icon={Wind}
+          value={`${analysis.weather.wind_speed.toFixed(1)}`}
+          tone={windSpeedTone(analysis.weather.wind_speed)}
+          label="Wind speed (m/s)"
         />
         <MetricPill
           icon={Cloud}
