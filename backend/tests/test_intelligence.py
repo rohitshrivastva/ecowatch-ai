@@ -57,7 +57,7 @@ async def test_history_pagination(client):
 @pytest.mark.asyncio
 async def test_heatmap_endpoints(client):
     bounds = {"north": 28.8, "south": 28.4, "east": 77.4, "west": 77.0, "zoom": 10}
-    for path in ("aqi", "temperature", "vegetation", "environmental-risk"):
+    for path in ("aqi", "temperature", "vegetation", "environmental-risk", "water-stress"):
         response = await client.get(f"/api/v1/heatmap/{path}", params=bounds)
         assert response.status_code == 200
         data = response.json()

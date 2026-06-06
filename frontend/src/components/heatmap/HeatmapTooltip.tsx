@@ -27,6 +27,7 @@ function formatValue(type: HeatmapType, point: HeatmapPoint): string {
   if (type === "aqi") return `AQI ${Math.round(v)}`;
   if (type === "temperature") return `${v.toFixed(1)}°C`;
   if (type === "vegetation") return `NDVI ${v.toFixed(2)}`;
+  if (type === "water-stress") return `Water stress ${v.toFixed(0)}`;
   return `Risk ${v.toFixed(0)}`;
 }
 

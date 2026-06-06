@@ -34,7 +34,8 @@ export type HeatmapType =
   | "aqi"
   | "temperature"
   | "vegetation"
-  | "environmental-risk";
+  | "environmental-risk"
+  | "water-stress";
 
 export type HeatmapPoint = {
   lat: number;
