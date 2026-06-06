@@ -8,6 +8,7 @@ import {
   AlertTriangle,
   Footprints,
   Ban,
+  Wind,
 } from "lucide-react";
 import clsx from "clsx";
 import { useLocalRegionTime } from "@/hooks/useLocalRegionTime";
@@ -146,6 +147,12 @@ function BestTimeOutsideCard({ data }: { data: BestTimeOutsideData }) {
             <span className="inline-flex items-center gap-1.5 text-xs font-medium px-2.5 py-1 rounded-full bg-white/70 text-slate-700 border border-white/80">
               <CloudRain className="w-3.5 h-3.5" />
               Rain {Math.round(data.rain_probability_pct)}%
+            </span>
+          )}
+          {data.wind_speed != null && (
+            <span className="inline-flex items-center gap-1.5 text-xs font-medium px-2.5 py-1 rounded-full bg-white/70 text-slate-700 border border-white/80">
+              <Wind className="w-3.5 h-3.5" />
+              Wind {data.wind_speed} m/s
             </span>
           )}
           {data.show_umbrella && (

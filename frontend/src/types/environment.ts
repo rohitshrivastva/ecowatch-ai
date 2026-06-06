@@ -59,6 +59,7 @@ export interface BestTimeOutside {
   avoid_windows: string[];
   timeline?: ForecastTimelineSlot[];
   rain_probability_pct: number | null;
+  wind_speed?: number | null;
   show_umbrella: boolean;
   thunderstorm_alert: boolean;
   local_time?: string | null;

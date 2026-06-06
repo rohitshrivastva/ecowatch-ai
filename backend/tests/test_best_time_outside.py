@@ -54,6 +54,8 @@ def test_clear_conditions_excellent_window():
     assert result["local_time"]
     assert result["timezone_label"]
     assert result["timezone_offset_seconds"] is not None
+    assert "wind_speed" in result
+    assert result["wind_speed"] is not None
 
 
 def test_thunderstorm_dangerous():

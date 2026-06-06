@@ -327,6 +327,7 @@ def compute_best_time_outside(
             "avoid_windows": [],
             "timeline": [],
             "rain_probability_pct": None,
+            "wind_speed": round(float(weather.get("wind_speed", 0)), 1),
             "show_umbrella": False,
             "thunderstorm_alert": False,
             **_local_time_fields(tz_offset),
@@ -385,6 +386,12 @@ def compute_best_time_outside(
                 avoid_ts_keys,
             ),
             "rain_probability_pct": 100.0,
+            "wind_speed": round(
+                float(scored[0][1].get("wind_speed", weather.get("wind_speed", 0)))
+                if scored
+                else float(weather.get("wind_speed", 0)),
+                1,
+            ),
             "show_umbrella": True,
             "thunderstorm_alert": True,
             **_local_time_fields(tz_offset),
@@ -425,6 +432,7 @@ def compute_best_time_outside(
 
     avoid_labels = [w.split(" · ")[0] for w in avoid_windows[:2]]
     show_umbrella = best_pop_pct > 10
+    best_wind = float(best_slot.get("wind_speed", weather.get("wind_speed", 0)))
 
     return {
         "time_window": time_window,
@@ -445,6 +453,7 @@ def compute_best_time_outside(
         "avoid_windows": avoid_windows[:2],
         "timeline": _build_timeline(scored, tz_offset, best_ts, avoid_ts_keys),
         "rain_probability_pct": round(best_pop_pct, 1),
+        "wind_speed": round(best_wind, 1),
         "show_umbrella": show_umbrella,
         "thunderstorm_alert": thunder_any,
         **_local_time_fields(tz_offset),

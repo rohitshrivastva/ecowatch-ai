@@ -76,6 +76,7 @@ class BestTimeOutside(BaseModel):
     avoid_windows: list[str] = Field(default_factory=list)
     timeline: list[ForecastTimelineSlot] = Field(default_factory=list)
     rain_probability_pct: Optional[float] = None
+    wind_speed: Optional[float] = None
     show_umbrella: bool = False
     thunderstorm_alert: bool = False
     local_time: Optional[str] = None
