@@ -13,7 +13,7 @@ from app.models.schemas import (
     BestTimeOutside,
 )
 from app.services.weather import weather_service, pollution_service
-from app.services.best_time_outside import compute_best_time_outside
+from app.services.best_time_outside import compute_best_time_outside, refresh_local_time_fields
 from app.services.satellite import satellite_service
 from app.services.ai import ai_service
 from app.services.risk_scoring import compute_risk_score
@@ -37,6 +37,12 @@ class AnalysisService:
                         forecast,
                         analysis.air_pollution.model_dump(),
                         analysis.weather.model_dump(),
+                    )
+                )
+            elif analysis.best_time_outside.timezone_offset_seconds is not None:
+                analysis.best_time_outside = BestTimeOutside(
+                    **refresh_local_time_fields(
+                        analysis.best_time_outside.model_dump()
                     )
                 )
             location_id = await self._persist_history(

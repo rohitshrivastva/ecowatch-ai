@@ -22,14 +22,38 @@ def _format_ampm(dt: datetime) -> str:
     h = dt.hour % 12 or 12
     suffix = "AM" if dt.hour < 12 else "PM"
     if dt.minute:
-        return f"{h}:{dt.minute:02d}{suffix}"
-    return f"{h}{suffix}"
+        return f"{h}:{dt.minute:02d} {suffix}"
+    return f"{h} {suffix}"
 
 
 def _format_window(start: datetime, hours: int, tz_offset_sec: int) -> str:
     local_start = start + timedelta(seconds=tz_offset_sec)
     local_end = local_start + timedelta(hours=hours)
     return f"{_format_ampm(local_start)} – {_format_ampm(local_end)}"
+
+
+def _format_local_clock(dt: datetime) -> str:
+    h = dt.hour % 12 or 12
+    suffix = "AM" if dt.hour < 12 else "PM"
+    return f"{h}:{dt.minute:02d} {suffix}"
+
+
+def _timezone_label(tz_offset_sec: int) -> str:
+    total_minutes = tz_offset_sec // 60
+    sign = "+" if total_minutes >= 0 else "-"
+    hours, rem = divmod(abs(total_minutes), 60)
+    if rem:
+        return f"UTC{sign}{hours}:{rem:02d}"
+    return f"UTC{sign}{hours}"
+
+
+def _local_time_fields(tz_offset_sec: int) -> dict[str, Any]:
+    local_now = datetime.now(timezone.utc) + timedelta(seconds=tz_offset_sec)
+    return {
+        "local_time": _format_local_clock(local_now),
+        "timezone_offset_seconds": tz_offset_sec,
+        "timezone_label": _timezone_label(tz_offset_sec),
+    }
 
 
 def _format_after(start: datetime, tz_offset_sec: int) -> str:
@@ -167,6 +191,7 @@ def _build_why(
     aqi: int,
     thunder_any: bool,
     avoid_labels: list[str],
+    time_window: str,
 ) -> str:
     if thunder_any:
         return (
@@ -178,24 +203,30 @@ def _build_why(
             "Heavy rain, storms, or hazardous air quality are expected. "
             "Outdoor activity is not recommended right now."
         )
-    if avoid_labels:
+    if avoid_labels and pop_pct <= 10:
         return (
-            f"Higher rain and humidity are likely during {avoid_labels[0]}. "
-            "Cooler, drier conditions are expected later in the day."
+            f"{time_window} is the driest window today "
+            f"({round(temp)}°C, {round(pop_pct)}% rain chance). "
+            f"Wetter conditions are expected around {avoid_labels[0]}."
+        )
+    if avoid_labels and pop_pct <= 25:
+        return (
+            f"{time_window} offers lower rain probability "
+            f"({round(pop_pct)}%) than {avoid_labels[0]}."
         )
     if pop_pct <= 10 and aqi <= 50:
         return (
-            "Clear weather, comfortable temperatures, and low rain probability "
-            "are expected during this window."
+            f"{time_window}: clear weather, comfortable temperatures, "
+            "and low rain probability."
         )
     if pop_pct <= 25:
         return (
-            "Lower temperatures and reduced rain probability are expected "
-            "during this period."
+            f"{time_window}: lower rain probability ({round(pop_pct)}%) "
+            f"and temperatures around {round(temp)}°C."
         )
     return (
-        f"Air quality (AQI {aqi}) and temperatures around {round(temp)}°C "
-        "were factored into this window."
+        f"{time_window}: AQI {aqi}, {round(temp)}°C, "
+        f"{round(pop_pct)}% rain chance in this window."
     )
 
 
@@ -226,7 +257,55 @@ def _build_suggestions(
         )
     if pop_pct > 25 and status not in (STATUS_DANGEROUS, STATUS_POOR):
         suggestions.append("Shorten outdoor windows if rain probability increases.")
-    return suggestions[:3]
+    return suggestions[:2]
+
+
+def _slot_timeline_kind(
+    pop_pct: float,
+    is_best: bool,
+    is_avoid: bool,
+) -> str:
+    if is_best:
+        return "best"
+    if is_avoid:
+        return "avoid"
+    if pop_pct > 50:
+        return "poor"
+    if pop_pct > 25:
+        return "moderate"
+    return "good"
+
+
+def _build_timeline(
+    scored: list[tuple[float, dict, int]],
+    tz_offset: int,
+    best_ts: datetime,
+    avoid_ts_keys: set[str],
+) -> list[dict[str, Any]]:
+    timeline: list[dict[str, Any]] = []
+    for _, slot, _ in scored:
+        ts = _parse_ts(slot["timestamp"])
+        local = ts + timedelta(seconds=tz_offset)
+        pop_pct = float(slot.get("pop", 0)) * 100
+        ts_key = slot["timestamp"]
+        is_best = ts == best_ts
+        is_avoid = ts_key in avoid_ts_keys
+        timeline.append(
+            {
+                "label": _format_ampm(local),
+                "pop_pct": round(pop_pct),
+                "kind": _slot_timeline_kind(pop_pct, is_best, is_avoid),
+            }
+        )
+    return timeline
+
+
+def refresh_local_time_fields(data: dict[str, Any]) -> dict[str, Any]:
+    """Update local clock fields (e.g. when serving cached analysis)."""
+    offset = data.get("timezone_offset_seconds")
+    if offset is None:
+        return data
+    return {**data, **_local_time_fields(int(offset))}
 
 
 def compute_best_time_outside(
@@ -246,14 +325,17 @@ def compute_best_time_outside(
             "suggestions": ["Check the map or try again shortly."],
             "suggested_activities": [],
             "avoid_windows": [],
+            "timeline": [],
             "rain_probability_pct": None,
             "show_umbrella": False,
             "thunderstorm_alert": False,
+            **_local_time_fields(tz_offset),
         }
 
     scored: list[tuple[float, dict, int]] = []
     thunder_any = False
     avoid_windows: list[str] = []
+    avoid_ts_keys: set[str] = set()
 
     for slot in slots:
         ts = _parse_ts(slot["timestamp"])
@@ -268,7 +350,8 @@ def compute_best_time_outside(
         rain_st = rain_status_from_pop(pop_pct, False)
         if rain_st in (STATUS_POOR, STATUS_DANGEROUS):
             label = _format_window(ts, 3, tz_offset)
-            avoid_windows.append(f"{label} → {desc or main.lower()}")
+            avoid_windows.append(f"{label} · {desc or main.lower()}")
+            avoid_ts_keys.add(slot["timestamp"])
 
         score = _hour_score(
             pop,
@@ -283,18 +366,28 @@ def compute_best_time_outside(
         scored.append((score, slot, local_hour))
 
     if thunder_any:
+        avoid_labels = [w.split(" · ")[0] for w in avoid_windows[:2]]
         return {
             "time_window": "Not recommended today",
             "environmental_status": STATUS_DANGEROUS,
-            "why": _build_why(STATUS_DANGEROUS, 100, 0, aqi, True, avoid_windows),
+            "why": _build_why(
+                STATUS_DANGEROUS, 100, 0, aqi, True, avoid_labels, "Today"
+            ),
             "suggestions": _build_suggestions(
-                STATUS_DANGEROUS, 100, False, avoid_windows, True
+                STATUS_DANGEROUS, 100, True, avoid_labels, True
             ),
             "suggested_activities": ["Stay indoors"],
             "avoid_windows": avoid_windows[:2],
+            "timeline": _build_timeline(
+                scored,
+                tz_offset,
+                _parse_ts(scored[0][1]["timestamp"]) if scored else _parse_ts(slots[0]["timestamp"]),
+                avoid_ts_keys,
+            ),
             "rain_probability_pct": 100.0,
             "show_umbrella": True,
             "thunderstorm_alert": True,
+            **_local_time_fields(tz_offset),
         }
 
     best_score, best_slot, _ = max(scored, key=lambda x: x[0])
@@ -330,24 +423,29 @@ def compute_best_time_outside(
     else:
         time_window = _format_window(best_ts, 2, tz_offset)
 
-    avoid_labels = [w.split(" →")[0] for w in avoid_windows[:2]]
-    show_umbrella = best_pop_pct > 10 or env_status in (
-        STATUS_MODERATE,
-        STATUS_POOR,
-    )
+    avoid_labels = [w.split(" · ")[0] for w in avoid_windows[:2]]
+    show_umbrella = best_pop_pct > 10
 
     return {
         "time_window": time_window,
         "environmental_status": env_status,
         "why": _build_why(
-            env_status, best_pop_pct, best_temp, aqi, thunder_any, avoid_labels
+            env_status,
+            best_pop_pct,
+            best_temp,
+            aqi,
+            thunder_any,
+            avoid_labels,
+            time_window,
         ),
         "suggestions": _build_suggestions(
             env_status, best_pop_pct, show_umbrella, avoid_labels, thunder_any
         ),
         "suggested_activities": _activities_for(env_status, best_pop_pct),
         "avoid_windows": avoid_windows[:2],
+        "timeline": _build_timeline(scored, tz_offset, best_ts, avoid_ts_keys),
         "rain_probability_pct": round(best_pop_pct, 1),
         "show_umbrella": show_umbrella,
         "thunderstorm_alert": thunder_any,
+        **_local_time_fields(tz_offset),
     }

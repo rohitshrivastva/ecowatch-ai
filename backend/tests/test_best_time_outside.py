@@ -51,6 +51,9 @@ def test_clear_conditions_excellent_window():
     assert result["environmental_status"] in (STATUS_EXCELLENT, "Good")
     assert "–" in result["time_window"] or "After" in result["time_window"]
     assert len(result["suggestions"]) >= 1
+    assert result["local_time"]
+    assert result["timezone_label"]
+    assert result["timezone_offset_seconds"] is not None
 
 
 def test_thunderstorm_dangerous():
@@ -64,6 +67,21 @@ def test_thunderstorm_dangerous():
     result = compute_best_time_outside(forecast, {"aqi": 50}, {"temperature": 25})
     assert result["thunderstorm_alert"] is True
     assert result["environmental_status"] == STATUS_DANGEROUS
+
+
+def test_no_umbrella_when_dry_best_window():
+    """Morning best window at 0% rain should not suggest umbrella."""
+    forecast = {
+        "timezone_offset": 19800,
+        "slots": [
+            _slot(0, 0.0, temp=22),
+            _slot(3, 0.0, temp=24),
+            _slot(6, 0.6, main="Rain", desc="light rain"),
+        ],
+    }
+    result = compute_best_time_outside(forecast, {"aqi": 40}, {"temperature": 22})
+    if result["rain_probability_pct"] == 0:
+        assert result["show_umbrella"] is False
 
 
 @pytest.mark.asyncio

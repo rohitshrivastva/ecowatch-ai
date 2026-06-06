@@ -8,7 +8,6 @@ import MapSection from "@/components/dashboard/MapSection";
 import InsightRecommendations from "@/components/dashboard/InsightRecommendations";
 import AdvancedAnalytics from "@/components/dashboard/AdvancedAnalytics";
 import TrendsSection from "@/components/dashboard/TrendsSection";
-import FavoritesPanel from "@/components/FavoritesPanel";
 import { useEnvironmentalAnalysis } from "@/hooks/useEnvironmentalAnalysis";
 import { useHeatmap } from "@/hooks/useHeatmap";
 import { resolveInitialLocation } from "@/lib/geo";
@@ -123,11 +122,6 @@ export default function Dashboard({
             loading={showPanelLoading}
             locationName={locationLabel}
             onForecastClick={openForecast}
-          />
-          <FavoritesPanel
-            compact
-            currentSelection={selection}
-            onSelectFavorite={handleLocationSelect}
           />
         </div>
 
