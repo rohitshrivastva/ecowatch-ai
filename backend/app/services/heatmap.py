@@ -10,8 +10,10 @@ from app.services.satellite import satellite_service
 from app.services.weather import pollution_service, weather_service
 from app.utils.heatmap_normalize import (
     compute_environmental_risk,
+    compute_water_stress,
     normalize_aqi,
     normalize_ndvi,
+    normalize_risk_score,
     normalize_temperature,
 )
 from app.utils.heatmap_spread import (
@@ -85,6 +87,9 @@ def _synthetic_intensity(heatmap_type: str, lat: float, lon: float) -> tuple[flo
     if heatmap_type == "vegetation":
         raw = base * 2.0 - 1.0
         return normalize_ndvi(raw)
+    if heatmap_type == "water-stress":
+        raw = base * 100.0
+        return normalize_risk_score(raw)
     raw = base * 100.0
     return base, raw
 
@@ -205,6 +210,8 @@ class HeatmapService:
             return round(intensity * 2.0 - 1.0, 3)
         if heatmap_type == "environmental-risk":
             return round(intensity * 100.0, 1)
+        if heatmap_type == "water-stress":
+            return round(intensity * 100.0, 1)
         return round(intensity, 3)
 
     async def _sample_at(
@@ -232,6 +239,17 @@ class HeatmapService:
                     float(weather["temperature"]),
                     float(sat["ndvi"]),
                     float(weather["humidity"]),
+                )
+
+            if heatmap_type == "water-stress":
+                weather = await weather_service.get_weather(lat, lon)
+                sat = await satellite_service.analyze_area(lat, lon)
+                return compute_water_stress(
+                    float(sat["ndvi"]),
+                    float(weather["humidity"]),
+                    float(weather["temperature"]),
+                    float(sat.get("water_proximity_km", 15)),
+                    float(sat.get("green_coverage_pct", 30)),
                 )
 
         return _synthetic_intensity(heatmap_type, lat, lon)

@@ -84,6 +84,43 @@ class BestTimeOutside(BaseModel):
     timezone_label: Optional[str] = None
 
 
+class WaterCrisisIndicator(BaseModel):
+    name: str
+    value: str
+    status: str
+
+
+class DroughtForecast(BaseModel):
+    outlook: str = "Stable"
+    horizon_hours: int = 24
+    summary: str = ""
+
+
+class ClimateAnomaly(BaseModel):
+    metric: str
+    severity: str
+    message: str
+
+
+class WaterCrisisIntelligence(BaseModel):
+    stress_level: str
+    drought_risk: str
+    rainfall_status: str
+    rainfall_deficit_pct: Optional[float] = None
+    summary: str
+    why: str
+    indicators: list[WaterCrisisIndicator] = Field(default_factory=list)
+    recommendations: list[str] = Field(default_factory=list)
+    drought_forecast: DroughtForecast = Field(default_factory=DroughtForecast)
+    environmental_risk_score: int = Field(default=0, ge=0, le=100)
+    climate_risk_level: str = "Low"
+    climate_anomalies: list[ClimateAnomaly] = Field(default_factory=list)
+    environmental_summary: str = ""
+    degradation_signals: list[str] = Field(default_factory=list)
+    sustainability_insights: list[str] = Field(default_factory=list)
+    global_stress_context: str = ""
+
+
 class EnvironmentalAnalysis(BaseModel):
     location_id: Optional[int] = None
     location: Coordinates
@@ -94,6 +131,7 @@ class EnvironmentalAnalysis(BaseModel):
     risk: RiskScore
     recommendations: list[Recommendation]
     best_time_outside: Optional[BestTimeOutside] = None
+    water_crisis: Optional[WaterCrisisIntelligence] = None
     timestamp: datetime
 
 

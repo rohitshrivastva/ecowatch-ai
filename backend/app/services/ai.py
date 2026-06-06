@@ -1,5 +1,6 @@
 import sys
 from pathlib import Path
+from typing import Optional
 
 AI_ROOT = Path(__file__).resolve().parents[3] / "ai-recommendations"
 if str(AI_ROOT) not in sys.path:
@@ -19,12 +20,21 @@ class AIService:
         weather: dict,
         environmental: dict,
         risk: dict,
+        water_crisis: Optional[dict] = None,
     ) -> list[dict]:
         return await self.engine.generate(
             pollution=pollution,
             weather=weather,
             environmental=environmental,
             risk=risk,
+            water_crisis=water_crisis,
+        )
+
+    async def enhance_environmental_summary(
+        self, template_summary: str, water_crisis: dict
+    ) -> str:
+        return await self.engine.enhance_environmental_summary(
+            template_summary, water_crisis
         )
 
 

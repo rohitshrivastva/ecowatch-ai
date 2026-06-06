@@ -39,6 +39,37 @@ def humidity_factor(humidity: float) -> float:
     return _clamp(1.0 - float(humidity) / 100.0)
 
 
+def compute_water_stress(
+    ndvi: float,
+    humidity: float,
+    temp: float,
+    water_km: float = 15.0,
+    green_pct: float = 30.0,
+) -> tuple[float, float]:
+    """Water stress intensity from vegetation, humidity, temperature, and access."""
+    score = 0
+    if ndvi < 0.25:
+        score += 25
+    elif ndvi < 0.35:
+        score += 15
+    if humidity < 25:
+        score += 20
+    elif humidity < 40:
+        score += 10
+    if temp > 38:
+        score += 25
+    elif temp > 32:
+        score += 15
+    if water_km > 40:
+        score += 15
+    elif water_km > 25:
+        score += 10
+    if green_pct < 25:
+        score += 10
+    raw = float(min(100, score))
+    return normalize_risk_score(raw)
+
+
 def compute_environmental_risk(
     aqi: float,
     temp: float,

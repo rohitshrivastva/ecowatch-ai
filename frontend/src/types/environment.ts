@@ -67,6 +67,43 @@ export interface BestTimeOutside {
   timezone_label?: string | null;
 }
 
+export interface ClimateAnomaly {
+  metric: string;
+  severity: string;
+  message: string;
+}
+
+export interface DroughtForecast {
+  outlook: string;
+  horizon_hours: number;
+  summary: string;
+}
+
+export interface WaterCrisisIndicator {
+  name: string;
+  value: string;
+  status: "good" | "moderate" | "warning" | "critical";
+}
+
+export interface WaterCrisisIntelligence {
+  stress_level: string;
+  drought_risk: string;
+  rainfall_status: string;
+  rainfall_deficit_pct?: number | null;
+  summary: string;
+  why: string;
+  indicators: WaterCrisisIndicator[];
+  recommendations: string[];
+  drought_forecast?: DroughtForecast;
+  environmental_risk_score?: number;
+  climate_risk_level?: string;
+  climate_anomalies?: ClimateAnomaly[];
+  environmental_summary?: string;
+  degradation_signals?: string[];
+  sustainability_insights?: string[];
+  global_stress_context?: string;
+}
+
 export interface EnvironmentalAnalysis {
   location_id?: number | null;
   location: Coordinates;
@@ -77,6 +114,7 @@ export interface EnvironmentalAnalysis {
   risk: RiskScore;
   recommendations: Recommendation[];
   best_time_outside?: BestTimeOutside | null;
+  water_crisis?: WaterCrisisIntelligence | null;
   timestamp: string;
 }
 

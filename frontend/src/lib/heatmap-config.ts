@@ -30,6 +30,13 @@ export const HEATMAP_GRADIENTS: Record<HeatmapType, HeatGradient> = {
     0.85: "#ef4444",
     1.0: "#a855f7",
   },
+  "water-stress": {
+    0.0: "#06b6d4",
+    0.35: "#22d3ee",
+    0.55: "#fbbf24",
+    0.75: "#f97316",
+    1.0: "#b91c1c",
+  },
 };
 
 export const HEATMAP_LEGENDS: Record<
@@ -44,6 +51,11 @@ export const HEATMAP_LEGENDS: Record<
     high: "Critical",
     title: "Environmental Risk",
   },
+  "water-stress": {
+    low: "Low stress",
+    high: "Critical",
+    title: "Water Stress",
+  },
 };
 
 export const HEATMAP_LAYER_OPTIONS: {
@@ -54,6 +66,7 @@ export const HEATMAP_LAYER_OPTIONS: {
   { id: "temperature", label: "Temperature" },
   { id: "vegetation", label: "Vegetation" },
   { id: "environmental-risk", label: "Risk" },
+  { id: "water-stress", label: "Water stress" },
 ];
 
 export function getHeatOptions(zoom: number, vivid = false) {

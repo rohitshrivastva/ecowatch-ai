@@ -31,9 +31,10 @@ Users must understand **environmental health**, **risk level**, and **recommende
 1. `LocationSearchBar` — location search first
 2. **Overview row (30% / 70%)** — `EnvironmentMetricTiles` (icon + value, color-coded) + embedded `MapSection`
 3. `BestTimeOutside` — when `analysis.best_time_outside` exists
-4. `InsightRecommendations` + favorites sidebar
-5. `AdvancedAnalytics` — collapsed
-6. Historical trends — separate collapsible section
+4. `WaterCrisisPanel` — when `analysis.water_crisis` exists
+5. `InsightRecommendations` + favorites sidebar
+6. `AdvancedAnalytics` — collapsed
+7. Historical trends — separate collapsible section
 
 Do **not** use a full-width blocking panel for geolocation in the hero area.
 

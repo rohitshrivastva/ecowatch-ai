@@ -4,6 +4,7 @@ import { useState, useCallback, useEffect, useRef } from "react";
 import LocationSearchBar from "@/components/dashboard/LocationSearchBar";
 import AirQualityPanel from "@/components/dashboard/AirQualityPanel";
 import BestTimeOutside from "@/components/dashboard/BestTimeOutside";
+import WaterCrisisPanel from "@/components/dashboard/WaterCrisisPanel";
 import MapSection from "@/components/dashboard/MapSection";
 import InsightRecommendations from "@/components/dashboard/InsightRecommendations";
 import AdvancedAnalytics from "@/components/dashboard/AdvancedAnalytics";
@@ -149,6 +150,10 @@ export default function Dashboard({
 
       {analysis?.best_time_outside && (
         <BestTimeOutside data={analysis.best_time_outside} />
+      )}
+
+      {analysis?.water_crisis && (
+        <WaterCrisisPanel data={analysis.water_crisis} />
       )}
 
       {analysis && (

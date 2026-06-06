@@ -28,6 +28,11 @@ async def test_analyze_by_coords(client):
     assert "environmental" in data
     assert "risk" in data
     assert "recommendations" in data
+    assert "water_crisis" in data
+    assert data["water_crisis"]["stress_level"]
+    assert data["water_crisis"]["environmental_summary"]
+    assert data["water_crisis"]["drought_forecast"]["outlook"]
+    assert "climate_risk_level" in data["water_crisis"]
     assert 0 <= data["risk"]["score"] <= 100
 
 
@@ -41,6 +46,7 @@ async def test_analyze_post(client):
     data = response.json()
     assert data["location_name"] == "Mumbai"
     assert data["air_pollution"]["aqi"] > 0
+    assert data.get("water_crisis") is not None
 
 
 @pytest.mark.asyncio

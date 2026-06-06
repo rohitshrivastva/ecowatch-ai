@@ -66,6 +66,36 @@ RULE_TEMPLATES = [
         ],
     },
     {
+        "condition": lambda d: d.get("water_crisis", {}).get("stress_level") in ("High", "Critical"),
+        "category": "water_conservation",
+        "priority": "critical",
+        "title": "High water stress detected",
+        "description": (
+            "Multiple signals point to elevated water stress in this area. "
+            "Conserving water and reducing outdoor use will help until conditions improve."
+        ),
+        "actions": [
+            "Avoid non-essential outdoor irrigation and car washing",
+            "Fix leaks and use water-efficient fixtures where possible",
+            "Follow local drought or water restriction advisories",
+        ],
+    },
+    {
+        "condition": lambda d: d.get("water_crisis", {}).get("drought_risk") == "High",
+        "category": "water_conservation",
+        "priority": "high",
+        "title": "Drought risk elevated",
+        "description": (
+            "Dry weather, vegetation stress, or low forecast rain suggest "
+            "increasing strain on local water availability."
+        ),
+        "actions": [
+            "Collect rainwater where regulations allow",
+            "Mulch gardens to reduce evaporation",
+            "Prefer drought-tolerant landscaping",
+        ],
+    },
+    {
         "condition": lambda d: d["weather"]["humidity"] < 30,
         "category": "water_conservation",
         "priority": "medium",
@@ -108,12 +138,14 @@ class RecommendationEngine:
         weather: dict,
         environmental: dict,
         risk: dict,
+        water_crisis: Optional[dict] = None,
     ) -> list[dict]:
         context = {
             "pollution": pollution,
             "weather": weather,
             "environmental": environmental,
             "risk": risk,
+            "water_crisis": water_crisis or {},
         }
 
         rule_based = self._apply_rules(context)
@@ -214,3 +246,32 @@ Return ONLY a valid JSON array."""
             return parsed
         except Exception:
             return []
+
+    async def enhance_environmental_summary(
+        self, template_summary: str, water_crisis: dict
+    ) -> str:
+        if not self.api_key:
+            return template_summary
+        try:
+            from openai import AsyncOpenAI
+
+            client = AsyncOpenAI(api_key=self.api_key)
+            prompt = f"""Rewrite this environmental intelligence summary in 2-3 clear sentences for residents and planners.
+Keep all factual claims. Plain language only. No bullet points.
+
+Template: {template_summary}
+
+Context: {json.dumps(water_crisis, default=str)}
+
+Return ONLY the rewritten summary text."""
+
+            response = await client.chat.completions.create(
+                model="gpt-4o-mini",
+                messages=[{"role": "user", "content": prompt}],
+                temperature=0.4,
+                max_tokens=200,
+            )
+            content = (response.choices[0].message.content or "").strip()
+            return content or template_summary
+        except Exception:
+            return template_summary
