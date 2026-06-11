@@ -26,6 +26,12 @@ export default function AppLayout({
           </Link>
           <nav className="flex items-center gap-4">
             <Link
+              href="/app/solutions"
+              className="text-xs text-eco-muted hover:text-eco-text transition-colors hidden sm:inline"
+            >
+              Solutions
+            </Link>
+            <Link
               href="/"
               className="text-xs text-eco-muted hover:text-eco-text transition-colors hidden sm:inline"
             >

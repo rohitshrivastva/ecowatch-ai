@@ -1,6 +1,8 @@
 "use client";
 
 import { useState, useCallback, useEffect, useRef } from "react";
+import Link from "next/link";
+import { Layers } from "lucide-react";
 import LocationSearchBar from "@/components/dashboard/LocationSearchBar";
 import AirQualityPanel from "@/components/dashboard/AirQualityPanel";
 import BestTimeOutside from "@/components/dashboard/BestTimeOutside";
@@ -111,6 +113,19 @@ export default function Dashboard({
 
   return (
     <div className="space-y-10">
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <p className="text-sm text-eco-muted">
+          Environmental overview for your selected location
+        </p>
+        <Link
+          href="/app/solutions"
+          className="inline-flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-medium border border-cyan-200 bg-cyan-50 text-cyan-800 hover:bg-cyan-100 transition-colors"
+        >
+          <Layers className="w-4 h-4" />
+          Solutions
+        </Link>
+      </div>
+
       <div className="grid grid-cols-1 lg:grid-cols-[minmax(300px,380px)_1fr] gap-6 lg:gap-8 lg:items-start">
         <div className="flex flex-col gap-4">
           <LocationSearchBar
