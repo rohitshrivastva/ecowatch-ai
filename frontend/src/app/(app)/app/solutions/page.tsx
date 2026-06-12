@@ -12,12 +12,13 @@ const SOLUTIONS = [
     available: true,
   },
   {
-    href: "#",
+    href: "/app/solutions/climate",
     title: "Climate Risk Scoring",
-    description: "Regional climate anomaly detection and risk scoring (coming soon).",
+    description:
+      "Composite Climate Risk Score (0–100) — air quality, water stress, drought, temperature, and stability with map overlays.",
     icon: Waves,
     accent: "text-violet-600 bg-violet-50 border-violet-200",
-    available: false,
+    available: true,
   },
 ];
 

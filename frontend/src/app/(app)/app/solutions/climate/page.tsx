@@ -5,16 +5,14 @@ import dynamic from "next/dynamic";
 import Link from "next/link";
 import {
   ArrowLeft,
-  Droplets,
+  Shield,
   MapPin,
   Loader2,
   ChevronUp,
   Sparkles,
 } from "lucide-react";
 import clsx from "clsx";
-import WaterCrisisPanel from "@/components/dashboard/WaterCrisisPanel";
 import ClimateRiskPanel from "@/components/solutions/ClimateRiskPanel";
-import WaterAnalysisPanel from "@/components/solutions/WaterAnalysisPanel";
 import { useEnvironmentalAnalysis } from "@/hooks/useEnvironmentalAnalysis";
 import { useGeospatialAnalysis } from "@/hooks/useGeospatialAnalysis";
 import { useInitialLocation } from "@/hooks/useInitialLocation";
@@ -34,7 +32,7 @@ const WaterIntelligenceMap = dynamic(
   }
 );
 
-export default function WaterSolutionsPage() {
+export default function ClimateSolutionsPage() {
   const { selection, setSelection, detecting: detectingLocation } =
     useInitialLocation();
   const [mapExpanded, setMapExpanded] = useState(true);
@@ -47,9 +45,7 @@ export default function WaterSolutionsPage() {
   const { result, loading: geoLoading, error: geoError, analyze, reset } =
     useGeospatialAnalysis();
 
-  const hasResults = Boolean(
-    analysis?.water_crisis || analysis?.climate_risk || result
-  );
+  const hasResults = Boolean(analysis?.climate_risk || result);
 
   useEffect(() => {
     if (hasResults && !hadResultsRef.current && resultsRef.current) {
@@ -70,7 +66,7 @@ export default function WaterSolutionsPage() {
   useEffect(() => {
     if (!selection || autoAnalyzedRef.current) return;
     autoAnalyzedRef.current = true;
-    void analyze(boundsFromLocation(selection), "water");
+    void analyze(boundsFromLocation(selection), "climate");
   }, [selection, analyze]);
 
   const handleRegionSelect = (loc: LocationSelection, bounds: RegionBounds) => {
@@ -78,7 +74,7 @@ export default function WaterSolutionsPage() {
     setSelection(loc);
     setMapExpanded(true);
     reset();
-    void analyze(bounds, "water");
+    void analyze(bounds, "climate");
   };
 
   const locationLabel =
@@ -89,10 +85,10 @@ export default function WaterSolutionsPage() {
 
   return (
     <div className="space-y-5 lg:space-y-6 pb-8">
-      <header className="relative overflow-hidden rounded-2xl border border-cyan-100 bg-gradient-to-br from-cyan-50 via-white to-teal-50/80 px-5 py-6 lg:px-8">
+      <header className="relative overflow-hidden rounded-2xl border border-violet-100 bg-gradient-to-br from-violet-50 via-white to-fuchsia-50/80 px-5 py-6 lg:px-8">
         <Link
           href="/app/solutions"
-          className="inline-flex items-center gap-1.5 text-xs text-cyan-800/70 hover:text-cyan-900 mb-3"
+          className="inline-flex items-center gap-1.5 text-xs text-violet-800/70 hover:text-violet-900 mb-3"
         >
           <ArrowLeft className="w-3.5 h-3.5" />
           All solutions
@@ -100,31 +96,31 @@ export default function WaterSolutionsPage() {
         <div className="flex flex-wrap items-start justify-between gap-4">
           <div>
             <div className="flex items-center gap-2.5">
-              <div className="p-2 rounded-xl bg-cyan-600 text-white shadow-sm">
-                <Droplets className="w-5 h-5" />
+              <div className="p-2 rounded-xl bg-violet-600 text-white shadow-sm">
+                <Shield className="w-5 h-5" />
               </div>
               <div>
                 <h1 className="text-xl lg:text-2xl font-bold text-slate-900">
-                  Water Management
+                  Climate Risk Scoring
                 </h1>
                 <p className="text-xs text-slate-600 mt-0.5">
-                  Drought · surface water · vegetation stress
+                  Air · water · drought · temperature · stability
                 </p>
               </div>
             </div>
             {!hasResults && (
               <p className="text-sm text-slate-600 mt-4 max-w-xl">
-                Search or click the map to choose an area, or draw a bounding box.
-                Satellite and environmental analysis run automatically below.
+                Select any region on the map to compute a composite Climate Risk
+                Score (0–100) with component breakdown, trends, and map overlay.
               </p>
             )}
           </div>
           {locationLabel && (
-            <div className="flex items-center gap-2 rounded-xl bg-white/90 border border-cyan-100 px-4 py-2.5 text-sm text-slate-800 shadow-sm max-w-md">
-              <MapPin className="w-4 h-4 text-cyan-600 shrink-0" />
+            <div className="flex items-center gap-2 rounded-xl bg-white/90 border border-violet-100 px-4 py-2.5 text-sm text-slate-800 shadow-sm max-w-md">
+              <MapPin className="w-4 h-4 text-violet-600 shrink-0" />
               <span className="truncate">{locationLabel}</span>
               {(analysisLoading || geoLoading) && (
-                <Loader2 className="w-4 h-4 text-cyan-600 animate-spin shrink-0" />
+                <Loader2 className="w-4 h-4 text-violet-600 animate-spin shrink-0" />
               )}
             </div>
           )}
@@ -145,43 +141,49 @@ export default function WaterSolutionsPage() {
           result={result}
           minimized={!mapExpanded}
           onToggleExpand={() => setMapExpanded((v) => !v)}
+          defaultLayers={{
+            climateRisk: true,
+            waterStress: false,
+            ndvi: false,
+            ndwi: false,
+          }}
           initialLocation={selection}
         />
       </div>
 
       {detectingLocation && (
         <div className="glass-panel rounded-2xl px-6 py-8 flex flex-col items-center justify-center text-center gap-3">
-          <Loader2 className="w-8 h-8 text-cyan-600 animate-spin" />
+          <Loader2 className="w-8 h-8 text-violet-600 animate-spin" />
           <p className="text-sm font-medium text-slate-800">
             Detecting your location…
           </p>
           <p className="text-xs text-slate-500 max-w-md">
-            Using your IP address to load environmental stats for your area.
+            Using your IP address to compute climate risk for your area.
           </p>
         </div>
       )}
 
       {!detectingLocation && !hasResults && selection && (analysisLoading || geoLoading) && (
         <div className="glass-panel rounded-2xl px-6 py-8 flex flex-col items-center justify-center text-center gap-3">
-          <Loader2 className="w-8 h-8 text-cyan-600 animate-spin" />
+          <Loader2 className="w-8 h-8 text-violet-600 animate-spin" />
           <p className="text-sm font-medium text-slate-800">
-            Analyzing region…
+            Computing climate risk…
           </p>
           <p className="text-xs text-slate-500 max-w-md">
-            Running satellite overlays and environmental intelligence for your
-            selected area.
+            Blending air quality, water stress, drought, temperature, and
+            climate stability indicators for your region.
           </p>
         </div>
       )}
 
       {!detectingLocation && !hasResults && !selection && (
-        <div className="glass-panel rounded-2xl border border-dashed border-cyan-200/60 bg-cyan-50/20 px-6 py-10 text-center">
-          <MapPin className="w-8 h-8 text-cyan-500 mx-auto mb-3 opacity-80" />
+        <div className="glass-panel rounded-2xl border border-dashed border-violet-200/60 bg-violet-50/20 px-6 py-10 text-center">
+          <MapPin className="w-8 h-8 text-violet-500 mx-auto mb-3 opacity-80" />
           <p className="text-sm font-medium text-slate-700">
-            Start by selecting a location on the map
+            Start by selecting a region on the map
           </p>
           <p className="text-xs text-slate-500 mt-1 max-w-sm mx-auto">
-            Search a city, click the map, or draw a region rectangle
+            Search, click, or draw a bounding box — analysis runs automatically
           </p>
         </div>
       )}
@@ -207,14 +209,14 @@ export default function WaterSolutionsPage() {
             <div className="flex items-center gap-2">
               <Sparkles className="w-5 h-5 text-violet-600" />
               <h2 className="text-lg font-semibold text-slate-900">
-                Analysis results
+                Climate risk analysis
               </h2>
             </div>
             {!mapExpanded && (
               <button
                 type="button"
                 onClick={() => setMapExpanded(true)}
-                className="inline-flex items-center gap-1.5 text-xs font-medium text-cyan-700 hover:text-cyan-900 px-3 py-1.5 rounded-lg border border-cyan-200 bg-cyan-50"
+                className="inline-flex items-center gap-1.5 text-xs font-medium text-violet-700 hover:text-violet-900 px-3 py-1.5 rounded-lg border border-violet-200 bg-violet-50"
               >
                 <ChevronUp className="w-3.5 h-3.5" />
                 Expand map
@@ -222,35 +224,36 @@ export default function WaterSolutionsPage() {
             )}
           </div>
 
-          {(result || geoLoading) && (
-            <section>
-              <div className="flex items-center gap-2 mb-4">
-                <Droplets className="w-5 h-5 text-blue-600" />
-                <div>
-                  <h3 className="text-base font-semibold text-slate-900">
-                    Satellite region analysis
-                  </h3>
-                  <p className="text-xs text-slate-500">
-                    NDVI, NDWI & water stress from the analyzed bounding box
-                  </p>
-                </div>
-              </div>
-              <WaterAnalysisPanel
-                result={result}
-                loading={geoLoading}
-                error={null}
-                layout="horizontal"
-                hideInsights={Boolean(analysis?.water_crisis)}
-              />
-            </section>
-          )}
-
-          {analysis?.water_crisis && (
-            <WaterCrisisPanel data={analysis.water_crisis} showTitle />
+          {result?.climateRiskScore != null && (
+            <div className="rounded-xl border border-violet-200 bg-violet-50/50 px-4 py-3 text-sm text-violet-900">
+              <span className="font-semibold">Regional satellite score: </span>
+              {result.climateRiskScore}/100 ({result.climateRiskCategory}) · Trend:{" "}
+              {result.climateRiskTrend}
+              {result.climateRiskSummary && (
+                <p className="text-xs text-violet-800/90 mt-1 leading-relaxed">
+                  {result.climateRiskSummary}
+                </p>
+              )}
+            </div>
           )}
 
           {analysis?.climate_risk && (
             <ClimateRiskPanel data={analysis.climate_risk} showTitle />
+          )}
+
+          {result?.climateInsights && result.climateInsights.length > 0 && (
+            <div className="glass-panel rounded-2xl p-5 border border-violet-200/60">
+              <p className="text-sm font-semibold text-slate-800 mb-2">
+                Regional AI insights
+              </p>
+              <ul className="space-y-1.5">
+                {result.climateInsights.map((tip) => (
+                  <li key={tip} className="text-sm text-slate-700">
+                    · {tip}
+                  </li>
+                ))}
+              </ul>
+            </div>
           )}
         </div>
       )}

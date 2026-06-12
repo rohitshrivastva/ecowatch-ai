@@ -6,14 +6,13 @@ import { Layers } from "lucide-react";
 import LocationSearchBar from "@/components/dashboard/LocationSearchBar";
 import AirQualityPanel from "@/components/dashboard/AirQualityPanel";
 import BestTimeOutside from "@/components/dashboard/BestTimeOutside";
-import WaterCrisisPanel from "@/components/dashboard/WaterCrisisPanel";
 import MapSection from "@/components/dashboard/MapSection";
 import InsightRecommendations from "@/components/dashboard/InsightRecommendations";
 import AdvancedAnalytics from "@/components/dashboard/AdvancedAnalytics";
 import TrendsSection from "@/components/dashboard/TrendsSection";
 import { useEnvironmentalAnalysis } from "@/hooks/useEnvironmentalAnalysis";
 import { useHeatmap } from "@/hooks/useHeatmap";
-import { resolveInitialLocation } from "@/lib/geo";
+import { useInitialLocation } from "@/hooks/useInitialLocation";
 import type { LocationSelection } from "@/types/environment";
 
 interface DashboardProps {
@@ -24,57 +23,34 @@ export default function Dashboard({
   forceDefaultLocation = false,
 }: DashboardProps) {
   const [selection, setSelection] = useState<LocationSelection | null>(null);
-  const [detectingLocation, setDetectingLocation] = useState(true);
+  const { selection: ipSelection, detecting: detectingLocation } =
+    useInitialLocation({ forceDefault: forceDefaultLocation });
+  const activeLocation = selection ?? ipSelection;
   const [trendsOpen, setTrendsOpen] = useState(false);
-  const geoAbortRef = useRef(false);
   const trendsRef = useRef<HTMLElement>(null);
   const heatmap = useHeatmap();
   const { setFocal } = heatmap;
 
-  const { analysis, loading, error } = useEnvironmentalAnalysis(selection);
+  const { analysis, loading, error } = useEnvironmentalAnalysis(activeLocation);
 
   const handleLocationSelect = useCallback((loc: LocationSelection) => {
     setSelection(loc);
   }, []);
 
   useEffect(() => {
-    geoAbortRef.current = false;
-    setDetectingLocation(true);
-
-    const controller = new AbortController();
-    const failSafeTimer = window.setTimeout(() => controller.abort(), 10000);
-
-    void (async () => {
-      const location = await resolveInitialLocation({
-        forceDefault: forceDefaultLocation,
-        signal: controller.signal,
-      });
-      if (geoAbortRef.current) return;
-      handleLocationSelect(location);
-      setDetectingLocation(false);
-    })();
-
-    return () => {
-      geoAbortRef.current = true;
-      controller.abort();
-      window.clearTimeout(failSafeTimer);
-    };
-  }, [handleLocationSelect, forceDefaultLocation]);
-
-  useEffect(() => {
-    if (!selection || !heatmap.enabled) {
+    if (!activeLocation || !heatmap.enabled) {
       heatmap.setFocal(null);
       return;
     }
     const intensity =
       analysis?.risk?.score != null ? analysis.risk.score / 100 : undefined;
     heatmap.setFocal({
-      lat: selection.latitude,
-      lng: selection.longitude,
+      lat: activeLocation.latitude,
+      lng: activeLocation.longitude,
       intensity,
     });
   }, [
-    selection,
+    activeLocation,
     analysis?.risk?.score,
     heatmap.enabled,
     setFocal,
@@ -109,7 +85,7 @@ export default function Dashboard({
   };
 
   const locationLabel =
-    analysis?.location_name ?? selection?.name ?? null;
+    analysis?.location_name ?? activeLocation?.name ?? null;
 
   return (
     <div className="space-y-10">
@@ -144,7 +120,7 @@ export default function Dashboard({
         <div className="h-[320px] sm:h-[380px] lg:h-[460px]">
           <MapSection
             onLocationSelect={handleLocationSelect}
-            selectedLocation={selection}
+            selectedLocation={activeLocation}
             loading={loading}
             detectingLocation={detectingLocation}
             heatmap={heatmapProps}
@@ -167,8 +143,35 @@ export default function Dashboard({
         <BestTimeOutside data={analysis.best_time_outside} />
       )}
 
-      {analysis?.water_crisis && (
-        <WaterCrisisPanel data={analysis.water_crisis} />
+      {analysis?.climate_risk && (
+        <Link
+          href="/app/solutions/climate"
+          className="block glass-panel p-4 rounded-xl border border-violet-200/80 bg-violet-50/50 hover:bg-violet-50 transition-colors"
+        >
+          <p className="text-sm font-medium text-violet-900">
+            Climate Risk Score: {analysis.climate_risk.score}/100 ·{" "}
+            {analysis.climate_risk.category}
+          </p>
+          <p className="text-xs text-violet-800/80 mt-1">
+            Full component breakdown, trends, and regional map overlay — open
+            Climate Risk Scoring →
+          </p>
+        </Link>
+      )}
+
+      {analysis && (
+        <Link
+          href="/app/solutions/water"
+          className="block glass-panel p-4 rounded-xl border border-cyan-200/80 bg-cyan-50/50 hover:bg-cyan-50 transition-colors"
+        >
+          <p className="text-sm font-medium text-cyan-900">
+            Water & drought intelligence
+          </p>
+          <p className="text-xs text-cyan-800/80 mt-1">
+            NDVI/NDWI overlays, environmental risk, and AI water crisis insights
+            — open Water Management →
+          </p>
+        </Link>
       )}
 
       {analysis && (

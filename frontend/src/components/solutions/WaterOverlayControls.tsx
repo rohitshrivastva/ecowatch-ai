@@ -28,6 +28,13 @@ const LAYER_META: Record<
     low: "Low stress",
     high: "Critical",
   },
+  climateRisk: {
+    label: "Climate Risk",
+    gradient:
+      "linear-gradient(to right, #22C55E, #A3E635, #FACC15, #F97316, #7F1D1D)",
+    low: "Safe",
+    high: "Critical",
+  },
 };
 
 export default function WaterOverlayControls({
@@ -35,12 +42,42 @@ export default function WaterOverlayControls({
   opacity,
   onToggleLayer,
   onOpacityChange,
+  compact = false,
 }: {
   layers: Record<WaterOverlayLayer, boolean>;
   opacity: number;
   onToggleLayer: (layer: WaterOverlayLayer) => void;
   onOpacityChange: (value: number) => void;
+  compact?: boolean;
 }) {
+  if (compact) {
+    return (
+      <div className="flex flex-wrap items-center gap-1.5 bg-white/95 backdrop-blur-sm rounded-lg px-2 py-1.5 shadow-sm border border-slate-200/80">
+        {(Object.keys(LAYER_META) as WaterOverlayLayer[]).map((key) => (
+          <button
+            key={key}
+            type="button"
+            onClick={() => onToggleLayer(key)}
+            className={clsx(
+              "text-[10px] font-semibold px-2 py-0.5 rounded-full border transition-colors",
+              layers[key]
+                ? key === "ndwi"
+                  ? "bg-blue-600 text-white border-blue-600"
+                  : key === "ndvi"
+                    ? "bg-emerald-600 text-white border-emerald-600"
+                    : key === "climateRisk"
+                      ? "bg-violet-700 text-white border-violet-700"
+                      : "bg-orange-600 text-white border-orange-600"
+                : "bg-white text-slate-500 border-slate-200"
+            )}
+          >
+            {LAYER_META[key].label.split(" — ")[0]}
+          </button>
+        ))}
+      </div>
+    );
+  }
+
   return (
     <div className="glass-panel p-4 rounded-xl space-y-3">
       <p className="text-xs font-semibold text-eco-text uppercase tracking-wide">

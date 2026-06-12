@@ -102,6 +102,35 @@ class ClimateAnomaly(BaseModel):
     message: str
 
 
+class ClimateRiskComponent(BaseModel):
+    name: str
+    key: str
+    score: float = Field(..., ge=0, le=100)
+    weight: float = Field(..., ge=0, le=1)
+    contribution: float = Field(..., ge=0, le=100)
+
+
+class ClimateRiskHistorical(BaseModel):
+    current_year: int = Field(..., ge=0, le=100)
+    last_year: int = Field(..., ge=0, le=100)
+    five_year_avg: int = Field(..., ge=0, le=100)
+    ten_year_avg: int = Field(..., ge=0, le=100)
+    change_3yr: int
+
+
+class ClimateRiskIntelligence(BaseModel):
+    score: int = Field(..., ge=0, le=100)
+    category: str
+    trend: str
+    trend_change_3yr: int = 0
+    summary: str = ""
+    outdoor_safety: str = "Safe"
+    outdoor_safety_score: int = Field(default=70, ge=0, le=100)
+    components: list[ClimateRiskComponent] = Field(default_factory=list)
+    historical: ClimateRiskHistorical
+    insights: list[str] = Field(default_factory=list)
+
+
 class WaterCrisisIntelligence(BaseModel):
     stress_level: str
     drought_risk: str
@@ -132,6 +161,7 @@ class EnvironmentalAnalysis(BaseModel):
     recommendations: list[Recommendation]
     best_time_outside: Optional[BestTimeOutside] = None
     water_crisis: Optional[WaterCrisisIntelligence] = None
+    climate_risk: Optional[ClimateRiskIntelligence] = None
     timestamp: datetime
 
 

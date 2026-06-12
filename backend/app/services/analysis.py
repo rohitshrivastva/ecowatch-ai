@@ -12,10 +12,12 @@ from app.models.schemas import (
     Recommendation,
     BestTimeOutside,
     WaterCrisisIntelligence,
+    ClimateRiskIntelligence,
 )
 from app.services.weather import weather_service, pollution_service
 from app.services.best_time_outside import compute_best_time_outside, refresh_local_time_fields
 from app.services.water_crisis import compute_water_crisis
+from app.services.climate_risk import compute_climate_risk
 from app.services.satellite import satellite_service
 from app.services.ai import ai_service
 from app.services.risk_scoring import compute_risk_score
@@ -73,6 +75,22 @@ class AnalysisService:
                     )
                 )
                 analysis.water_crisis = WaterCrisisIntelligence(**wc_data)
+            if analysis.climate_risk is None:
+                forecast = await weather_service.get_forecast(lat, lon)
+                cr_data = compute_climate_risk(
+                    analysis.air_pollution.model_dump(),
+                    analysis.weather.model_dump(),
+                    forecast,
+                    {
+                        "ndvi": analysis.environmental.ndvi,
+                        "green_coverage_pct": analysis.environmental.green_coverage_pct,
+                        "water_proximity_km": analysis.environmental.water_proximity_km,
+                        "urban_heat_index": analysis.environmental.urban_heat_index,
+                    },
+                    lat=lat,
+                    lon=lon,
+                )
+                analysis.climate_risk = ClimateRiskIntelligence(**cr_data)
             location_id = await self._persist_history(
                 lat,
                 lon,
@@ -123,6 +141,15 @@ class AnalysisService:
             )
         )
 
+        climate_risk_data = compute_climate_risk(
+            pollution,
+            weather,
+            forecast,
+            satellite,
+            lat=lat,
+            lon=lon,
+        )
+
         recommendations = await ai_service.generate_recommendations(
             pollution=pollution,
             weather=weather,
@@ -152,6 +179,7 @@ class AnalysisService:
             recommendations=[Recommendation(**r) for r in recommendations],
             best_time_outside=BestTimeOutside(**best_time_data),
             water_crisis=WaterCrisisIntelligence(**water_crisis_data),
+            climate_risk=ClimateRiskIntelligence(**climate_risk_data),
             timestamp=datetime.now(timezone.utc),
         )
 

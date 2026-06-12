@@ -23,14 +23,20 @@ export default function WaterAnalysisPanel({
   result,
   loading,
   error,
+  compact = false,
+  layout = "default",
+  hideInsights = false,
 }: {
   result: GeospatialAnalyzeResponse | null;
   loading: boolean;
   error: string | null;
+  compact?: boolean;
+  layout?: "default" | "horizontal";
+  hideInsights?: boolean;
 }) {
   if (loading) {
     return (
-      <div className="glass-panel p-6 rounded-2xl animate-pulse">
+      <div className="glass-panel p-5 rounded-2xl animate-pulse">
         <p className="text-sm text-eco-primary">Processing satellite imagery…</p>
         <p className="text-xs text-eco-muted mt-2">
           Calculating NDVI, NDWI, and water crisis score
@@ -41,7 +47,7 @@ export default function WaterAnalysisPanel({
 
   if (error) {
     return (
-      <div className="glass-panel p-6 rounded-2xl border-eco-danger/40 text-eco-danger text-sm">
+      <div className="glass-panel p-5 rounded-2xl border-eco-danger/40 text-eco-danger text-sm">
         {error}
       </div>
     );
@@ -49,38 +55,53 @@ export default function WaterAnalysisPanel({
 
   if (!result) {
     return (
-      <div className="glass-panel p-6 rounded-2xl">
-        <div className="flex items-center gap-2 mb-3">
-          <Waves className="w-5 h-5 text-cyan-600" />
-          <h2 className="text-lg font-semibold text-eco-text">
-            Water Crisis Intelligence
-          </h2>
-        </div>
+      <div className="glass-panel p-5 rounded-2xl border border-dashed border-cyan-200/80 bg-cyan-50/30">
         <p className="text-sm text-eco-muted leading-relaxed">
-          Select a region on the map — search, click, or draw a bounding box —
-          then run analysis to generate NDVI, NDWI, and water stress overlays.
+          {compact
+            ? "Select a region on the map above to generate NDVI, NDWI, and water stress overlays automatically."
+            : "Select a region on the map — search, click, or draw a bounding box — to generate NDVI, NDWI, and water stress overlays automatically."}
         </p>
-        <ul className="mt-4 space-y-2 text-sm text-eco-muted">
-          <li>· Detect drought and vegetation stress</li>
-          <li>· Monitor surface water and reservoir signals</li>
-          <li>· View AI-generated water crisis insights</li>
-        </ul>
+        {!compact && (
+          <ul className="mt-4 space-y-2 text-sm text-eco-muted">
+            <li>· Detect drought and vegetation stress</li>
+            <li>· Monitor surface water and reservoir signals</li>
+            <li>· View AI-generated water crisis insights</li>
+          </ul>
+        )}
       </div>
     );
   }
 
   const riskStyle = RISK_STYLES[result.waterRisk] ?? RISK_STYLES.Moderate;
+  const metricGrid =
+    layout === "horizontal"
+      ? "grid grid-cols-2 md:grid-cols-4 gap-3"
+      : "grid grid-cols-2 gap-3";
 
   return (
-    <div className="space-y-4">
-      <div className="glass-panel p-6 rounded-2xl">
+    <div className={compact ? "space-y-3" : "space-y-4"}>
+      <div
+        className={clsx(
+          "glass-panel rounded-2xl",
+          layout === "horizontal" ? "p-6" : "p-5"
+        )}
+      >
         <div className="flex flex-wrap items-start justify-between gap-3 mb-4">
-          <div className="flex items-center gap-2">
-            <Waves className="w-5 h-5 text-cyan-600" />
-            <h2 className="text-lg font-semibold text-eco-text">
-              Region Analysis
-            </h2>
-          </div>
+          {layout !== "horizontal" && (
+            <>
+              {!compact && (
+                <div className="flex items-center gap-2">
+                  <Waves className="w-5 h-5 text-cyan-600" />
+                  <h2 className="text-lg font-semibold text-eco-text">
+                    Region Analysis
+                  </h2>
+                </div>
+              )}
+              {compact && (
+                <p className="text-sm font-medium text-eco-text">Results</p>
+              )}
+            </>
+          )}
           <span
             className={clsx(
               "text-xs font-semibold px-3 py-1 rounded-full border",
@@ -91,7 +112,7 @@ export default function WaterAnalysisPanel({
           </span>
         </div>
 
-        <div className="grid grid-cols-2 gap-3">
+        <div className={metricGrid}>
           <MetricCard
             icon={<Leaf className="w-4 h-4 text-emerald-600" />}
             label="NDVI"
@@ -128,15 +149,27 @@ export default function WaterAnalysisPanel({
         </div>
       </div>
 
-      {result.insights.length > 0 && (
-        <div className="glass-panel p-6 rounded-2xl border-violet-200/80">
+      {result.insights.length > 0 && !hideInsights && (
+        <div
+          className={clsx(
+            "glass-panel rounded-2xl border border-violet-200/60 bg-violet-50/30",
+            layout === "horizontal" ? "p-5" : compact ? "p-4" : "p-6"
+          )}
+        >
           <div className="flex items-center gap-2 mb-3">
             <Sparkles className="w-4 h-4 text-violet-600" />
             <h3 className="text-sm font-semibold text-violet-900">
-              AI Environmental Insights
+              Satellite AI insights
             </h3>
           </div>
-          <ul className="space-y-2">
+          <ul
+            className={clsx(
+              "gap-3",
+              layout === "horizontal"
+                ? "grid grid-cols-1 md:grid-cols-2"
+                : "space-y-2"
+            )}
+          >
             {result.insights.map((insight) => (
               <li key={insight} className="text-sm text-slate-700 leading-relaxed">
                 · {insight}
