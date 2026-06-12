@@ -4,11 +4,13 @@ import type { EnvironmentalAnalysis, LocationSelection } from "@/types/environme
 const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
 
 export async function analyzeLocation(
-  selection: LocationSelection
+  selection: LocationSelection,
+  signal?: AbortSignal
 ): Promise<EnvironmentalAnalysis> {
   const response = await fetch(`${API_URL}/api/v1/analyze`, {
     method: "POST",
     headers: { "Content-Type": "application/json", ...authHeaders() },
+    signal,
     body: JSON.stringify({
       latitude: selection.latitude,
       longitude: selection.longitude,

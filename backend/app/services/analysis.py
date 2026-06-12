@@ -1,4 +1,5 @@
 from datetime import datetime, timezone
+import asyncio
 from typing import Optional
 
 from app.models.schemas import (
@@ -136,12 +137,6 @@ class AnalysisService:
             risk=risk_data,
             location_name=request.name,
         )
-        water_crisis_data["environmental_summary"] = (
-            await ai_service.enhance_environmental_summary(
-                water_crisis_data["environmental_summary"], water_crisis_data
-            )
-        )
-
         climate_risk_data = compute_climate_risk(
             pollution,
             weather,
@@ -151,13 +146,19 @@ class AnalysisService:
             lon=lon,
         )
 
-        recommendations = await ai_service.generate_recommendations(
-            pollution=pollution,
-            weather=weather,
-            environmental=satellite,
-            risk=risk_data,
-            water_crisis=water_crisis_data,
+        enhanced_summary, recommendations = await asyncio.gather(
+            ai_service.enhance_environmental_summary(
+                water_crisis_data["environmental_summary"], water_crisis_data
+            ),
+            ai_service.generate_recommendations(
+                pollution=pollution,
+                weather=weather,
+                environmental=satellite,
+                risk=risk_data,
+                water_crisis=water_crisis_data,
+            ),
         )
+        water_crisis_data["environmental_summary"] = enhanced_summary
 
         location_id = await self._persist_history(
             lat, lon, request.name, pollution, weather, satellite, risk_data
@@ -217,8 +218,6 @@ class AnalysisService:
             return None
 
     async def _fetch_all(self, lat: float, lon: float, boundary: Optional[dict]):
-        import asyncio
-
         pollution_task = pollution_service.get_pollution(lat, lon)
         weather_task = weather_service.get_weather(lat, lon)
         forecast_task = weather_service.get_forecast(lat, lon)

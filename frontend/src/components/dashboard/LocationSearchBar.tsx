@@ -58,7 +58,9 @@ function LocationSearchBar({
       </div>
       {(detectingLocation || loading) && (
         <p className="text-xs text-emerald-600 pl-4 animate-pulse">
-          {detectingLocation ? "Finding your area…" : "Updating air quality…"}
+          {detectingLocation
+            ? "Detecting your location… allow browser access if prompted."
+            : "Analyzing environmental data for this location…"}
         </p>
       )}
     </div>

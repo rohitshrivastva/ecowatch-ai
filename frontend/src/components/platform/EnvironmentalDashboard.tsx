@@ -5,11 +5,13 @@ import {
   Droplets,
   Shield,
   CloudSun,
+  MapPin,
 } from "lucide-react";
 import ScoreCard from "@/components/platform/ScoreCard";
 import ModuleOverviewCard from "@/components/platform/ModuleOverviewCard";
 import PlatformMap from "@/components/platform/PlatformMap";
 import EnvironmentalSummary from "@/components/platform/EnvironmentalSummary";
+import LocationSearchBar from "@/components/dashboard/LocationSearchBar";
 import { useEnvironmentalAnalysis } from "@/hooks/useEnvironmentalAnalysis";
 import { usePlatformLocation } from "@/hooks/usePlatformLocation";
 import { environmentalHealthFromRisk } from "@/lib/platform-health";
@@ -19,7 +21,7 @@ export default function EnvironmentalDashboard({
 }: {
   forceDefaultLocation?: boolean;
 }) {
-  const { location, setLocation, detecting } = usePlatformLocation(
+  const { location, setLocation, detecting, hydrated } = usePlatformLocation(
     forceDefaultLocation
   );
   const { analysis, loading, error } = useEnvironmentalAnalysis(location);
@@ -32,6 +34,7 @@ export default function EnvironmentalDashboard({
   const cr = analysis?.climate_risk;
   const air = analysis?.air_pollution;
   const weather = analysis?.weather;
+  const pending = !hydrated || (loading && !analysis);
 
   return (
     <div className="space-y-8 pb-8">
@@ -45,10 +48,27 @@ export default function EnvironmentalDashboard({
         </p>
       </div>
 
+      <div className="max-w-xl">
+        <LocationSearchBar
+          onLocationSelect={setLocation}
+          loading={loading}
+          detectingLocation={detecting}
+        />
+        {hydrated && location?.name && !detecting && (
+          <p className="flex items-center gap-1.5 text-xs text-eco-muted mt-2 pl-1">
+            <MapPin className="w-3.5 h-3.5 text-eco-primary shrink-0" />
+            <span>
+              Showing data for{" "}
+              <span className="font-medium text-eco-text">{location.name}</span>
+            </span>
+          </p>
+        )}
+      </div>
+
       <ScoreCard
         score={health?.score ?? 0}
         category={health?.category ?? "Moderate"}
-        loading={detecting || (loading && !analysis)}
+        loading={detecting || pending}
         subtitle={
           analysis?.location_name
             ? `Based on conditions near ${analysis.location_name}`
@@ -74,7 +94,7 @@ export default function EnvironmentalDashboard({
                   { label: "Status", value: air.aqi_label },
                   { label: "PM2.5", value: `${air.pm25.toFixed(1)} µg/m³` },
                 ]
-              : [{ label: "Status", value: detecting ? "…" : "—" }]
+              : [{ label: "Status", value: pending ? "Loading…" : "—" }]
           }
         />
         <ModuleOverviewCard
@@ -96,7 +116,7 @@ export default function EnvironmentalDashboard({
                         : "Near typical",
                   },
                 ]
-              : [{ label: "Status", value: detecting ? "…" : "—" }]
+              : [{ label: "Status", value: pending ? "Loading…" : "—" }]
           }
         />
         <ModuleOverviewCard
@@ -112,7 +132,7 @@ export default function EnvironmentalDashboard({
                   { label: "Level", value: cr.category },
                   { label: "Trend", value: cr.trend },
                 ]
-              : [{ label: "Status", value: detecting ? "…" : "—" }]
+              : [{ label: "Status", value: pending ? "Loading…" : "—" }]
           }
         />
         <ModuleOverviewCard
@@ -135,7 +155,7 @@ export default function EnvironmentalDashboard({
                         : weather.description,
                   },
                 ]
-              : [{ label: "Status", value: detecting ? "…" : "—" }]
+              : [{ label: "Status", value: pending ? "Loading…" : "—" }]
           }
         />
       </div>
@@ -145,8 +165,8 @@ export default function EnvironmentalDashboard({
           Environmental map
         </h2>
         <p className="text-sm text-eco-muted mb-4">
-          Explore AQI, water stress, climate risk, and weather layers for your
-          region.
+          Explore AQI, water stress, climate risk, and weather layers. Search
+          above or click the map to change location.
         </p>
         <PlatformMap
           location={location}

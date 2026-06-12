@@ -33,7 +33,11 @@ export default function PlatformMap({
 
   useEffect(() => {
     heatmap.setType(defaultLayer);
-    heatmap.setEnabled(true);
+    const timer = window.setTimeout(() => heatmap.setEnabled(true), 300);
+    return () => {
+      window.clearTimeout(timer);
+      heatmap.setEnabled(false);
+    };
   }, [defaultLayer]); // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => {

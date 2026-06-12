@@ -4,12 +4,20 @@ import { useEffect, useRef, useState } from "react";
 import { resolveInitialLocation } from "@/lib/geo";
 import type { LocationSelection } from "@/types/environment";
 
-export function useInitialLocation(options?: { forceDefault?: boolean }) {
+export function useInitialLocation(options?: {
+  forceDefault?: boolean;
+  skip?: boolean;
+}) {
   const [selection, setSelection] = useState<LocationSelection | null>(null);
   const [detecting, setDetecting] = useState(true);
   const abortRef = useRef(false);
 
   useEffect(() => {
+    if (options?.skip) {
+      setDetecting(false);
+      return;
+    }
+
     abortRef.current = false;
     setDetecting(true);
 
@@ -30,7 +38,7 @@ export function useInitialLocation(options?: { forceDefault?: boolean }) {
       controller.abort();
       window.clearTimeout(failSafe);
     };
-  }, [options?.forceDefault]);
+  }, [options?.forceDefault, options?.skip]);
 
   return { selection, setSelection, detecting };
 }

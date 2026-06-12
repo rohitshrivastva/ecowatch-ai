@@ -55,7 +55,22 @@ function MapController({
 }) {
   const map = useMap();
   useEffect(() => {
-    map.flyTo(center, zoom, { duration: 1.2 });
+    let timer: number | undefined;
+
+    const fly = () => {
+      const size = map.getSize();
+      if (size.x <= 0 || size.y <= 0) {
+        map.invalidateSize();
+        timer = window.setTimeout(fly, 100);
+        return;
+      }
+      map.flyTo(center, zoom, { duration: 1.2 });
+    };
+
+    fly();
+    return () => {
+      if (timer) window.clearTimeout(timer);
+    };
   }, [center, map, zoom]);
   return null;
 }
@@ -105,14 +120,31 @@ function HeatmapCleanup({ enabled }: { enabled: boolean }) {
 function MapInvalidateOnMount() {
   const map = useMap();
   useEffect(() => {
-    const refresh = () => map.invalidateSize();
+    const refresh = () => {
+      const container = map.getContainer();
+      if (
+        !container ||
+        container.clientWidth <= 0 ||
+        container.clientHeight <= 0
+      ) {
+        return;
+      }
+      const size = map.getSize();
+      if (size.x <= 0 || size.y <= 0) return;
+      try {
+        map.invalidateSize();
+      } catch {
+        /* ignore during transient layout */
+      }
+    };
+
     refresh();
     const raf = requestAnimationFrame(refresh);
     const timer = window.setTimeout(refresh, 150);
     const container = map.getContainer();
     const observer =
       typeof ResizeObserver !== "undefined" && container
-        ? new ResizeObserver(refresh)
+        ? new ResizeObserver(() => requestAnimationFrame(refresh))
         : null;
     observer?.observe(container);
     window.addEventListener("resize", refresh);
@@ -184,7 +216,11 @@ export default function InteractiveMap({
   const handleSelect = useCallback(
     (lat: number, lng: number, name?: string) => {
       setMapCenter([lat, lng]);
-      onLocationSelect({ latitude: lat, longitude: lng, name });
+      onLocationSelect({
+        latitude: lat,
+        longitude: lng,
+        name: name ?? `${lat.toFixed(2)}°, ${lng.toFixed(2)}°`,
+      });
     },
     [onLocationSelect]
   );
@@ -407,8 +443,29 @@ export default function InteractiveMap({
 
         {isIqair && (
           <>
+            {embedded && (
+              <div className="absolute top-3 left-14 right-14 z-[1000] pointer-events-auto">
+                <div className="relative">
+                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-slate-400" />
+                  <input
+                    type="text"
+                    placeholder="Search city…"
+                    value={searchQuery}
+                    onChange={(e) => handleSearch(e.target.value)}
+                    className="w-full pl-9 pr-3 py-2 bg-white/95 backdrop-blur-sm border border-slate-200 rounded-lg text-xs text-slate-800 placeholder:text-slate-400 focus:outline-none focus:border-emerald-500 shadow-md"
+                    aria-label="Search location on map"
+                  />
+                </div>
+              </div>
+            )}
             <div className="absolute top-3 right-3 z-[1000] rounded-lg bg-slate-900/80 backdrop-blur-sm px-3 py-1.5 text-xs font-semibold text-slate-100 shadow-md pointer-events-none border border-slate-700/50">
               EcoWatch GIS
+            </div>
+            <div className="absolute bottom-3 left-3 z-[1000] rounded-lg bg-slate-900/75 backdrop-blur-sm px-3 py-1.5 text-[10px] text-slate-200 pointer-events-none border border-slate-700/50">
+              <div className="flex items-center gap-1.5">
+                <MapPin className="w-3 h-3 text-emerald-400" />
+                Click map to select location
+              </div>
             </div>
             <div className="absolute bottom-3 right-14 z-[1000] pointer-events-auto">
               <button

@@ -1,0 +1,28 @@
+{
+  "redirects": [
+    {
+      "source": "/",
+      "has": [{ "type": "host", "value": "app.ecowatch.cloud" }],
+      "destination": "https://ecowatch.cloud/app",
+      "permanent": true
+    },
+    {
+      "source": "/:path*",
+      "has": [{ "type": "host", "value": "app.ecowatch.cloud" }],
+      "destination": "https://ecowatch.cloud/:path*",
+      "permanent": true
+    },
+    {
+      "source": "/",
+      "has": [{ "type": "host", "value": "app.ecowatchai.com" }],
+      "destination": "https://ecowatch.cloud/app",
+      "permanent": true
+    },
+    {
+      "source": "/:path*",
+      "has": [{ "type": "host", "value": "app.ecowatchai.com" }],
+      "destination": "https://ecowatch.cloud/:path*",
+      "permanent": true
+    }
+  ]
+}

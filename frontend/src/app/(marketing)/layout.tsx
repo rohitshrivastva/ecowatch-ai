@@ -1,7 +1,6 @@
 import Link from "next/link";
 import { Leaf } from "lucide-react";
 import HeaderAuth from "@/components/HeaderAuth";
-import { getAppUrl } from "@/lib/app-url";
 
 export default function MarketingLayout({
   children,
@@ -27,13 +26,13 @@ export default function MarketingLayout({
           </Link>
           <nav className="flex items-center gap-4">
             <Link
-              href={getAppUrl("/app")}
+              href="/app"
               className="text-sm font-medium text-eco-muted hover:text-eco-text transition-colors hidden sm:inline"
             >
               Dashboard
             </Link>
             <Link
-              href={getAppUrl("/app")}
+              href="/app"
               className="px-4 py-2 rounded-lg bg-eco-primary text-white text-sm font-semibold hover:bg-eco-primary/90 transition-colors"
             >
               Open App

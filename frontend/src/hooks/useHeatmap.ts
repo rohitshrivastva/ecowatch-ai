@@ -88,11 +88,13 @@ export function useHeatmap() {
   const [viewportZoom, setViewportZoom] = useState(10);
   const [lastBounds, setLastBounds] = useState<HeatmapBounds | null>(null);
   const [focal, setFocal] = useState<HeatmapFocal | null>(null);
-  const [debugMode, setDebugMode] = useState(
-    () =>
-      typeof window !== "undefined" &&
-      process.env.NODE_ENV === "development"
-  );
+  const [debugMode, setDebugMode] = useState(false);
+
+  useEffect(() => {
+    if (process.env.NODE_ENV === "development") {
+      setDebugMode(true);
+    }
+  }, []);
 
   const requestIdRef = useRef(0);
   const abortRef = useRef<AbortController | null>(null);
