@@ -52,6 +52,7 @@ class AnalysisService:
             if (
                 analysis.water_crisis is None
                 or not analysis.water_crisis.environmental_summary
+                or analysis.water_crisis.rainfall_anomaly is None
             ):
                 forecast = await weather_service.get_forecast(lat, lon)
                 wc_data = compute_water_crisis(

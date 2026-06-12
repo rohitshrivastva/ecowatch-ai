@@ -5,7 +5,6 @@ import L from "leaflet";
 import type { LatLngBounds } from "leaflet";
 import {
   MapContainer,
-  TileLayer,
   Marker,
   Rectangle,
   ImageOverlay,
@@ -15,7 +14,20 @@ import {
 import { Search, Square, MapPin, Maximize2, Minimize2 } from "lucide-react";
 import clsx from "clsx";
 import { resolveOverlayUrl } from "@/lib/geospatial-api";
+import GisMapLayers from "@/components/map/GisMapLayers";
+import {
+  GisBasemapSwitcher,
+  GisCoordinateReadout,
+  GisScaleControl,
+} from "@/components/map/GisMapEnhancements";
 import WaterOverlayControls from "@/components/solutions/WaterOverlayControls";
+import {
+  createGisMarkerIcon,
+  GIS_ANALYSIS_BOUNDS_STYLE,
+  GIS_REGION_DRAW_STYLE,
+  GIS_REGION_STYLE,
+  type GisBasemapId,
+} from "@/lib/gis-map";
 import type { LocationSelection } from "@/types/environment";
 import type {
   GeospatialAnalyzeResponse,
@@ -95,6 +107,7 @@ export default function WaterIntelligenceMap({
     climateRisk: defaultLayers?.climateRisk ?? false,
   });
   const [opacity, setOpacity] = useState(0.65);
+  const [basemap, setBasemap] = useState<GisBasemapId>("topo");
   const searchTimeout = useRef<NodeJS.Timeout>();
 
   useEffect(() => {
@@ -220,15 +233,11 @@ export default function WaterIntelligenceMap({
       ]
     : null;
 
-  const markerIcon = L.divIcon({
-    className: "custom-marker",
-    html: `<div style="width:20px;height:20px;background:#0891b2;border:2px solid white;border-radius:50%;box-shadow:0 0 10px rgba(8,145,178,0.5)"></div>`,
-    iconSize: [20, 20],
-    iconAnchor: [10, 10],
-  });
+  const markerIcon = createGisMarkerIcon("primary");
+  const cornerIcon = createGisMarkerIcon("corner");
 
   return (
-    <div className="glass-panel overflow-hidden rounded-2xl flex flex-col h-full min-h-0 shadow-sm ring-1 ring-cyan-100/80">
+    <div className="glass-panel overflow-hidden rounded-2xl flex flex-col h-full min-h-0 shadow-md ring-1 ring-slate-200/80">
       <div
         className={clsx(
           "border-b border-eco-border flex flex-wrap gap-2 items-center bg-white/80",
@@ -297,32 +306,37 @@ export default function WaterIntelligenceMap({
         )}
       </div>
 
-      <div className={clsx("relative flex-1", minimized ? "min-h-0" : "min-h-[280px]")}>
+      <div
+        className={clsx(
+          "relative flex-1 gis-map-vignette overflow-hidden",
+          minimized ? "min-h-0" : "min-h-[280px]"
+        )}
+      >
         <MapContainer
           center={defaultCenter}
           zoom={5}
-          className="h-full w-full z-0"
+          className="gis-map h-full w-full z-0"
+          zoomControl
         >
-          <TileLayer
-            attribution='&copy; <a href="https://carto.com/">CARTO</a>'
-            url="https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png"
-          />
+          <GisMapLayers basemap={basemap} />
           <MapController center={mapCenter} zoom={regionBounds ? 11 : 5} />
           <MapInvalidateOnMount minimized={minimized} />
+          <GisScaleControl />
+          <GisCoordinateReadout />
           <MapClickHandler onSelect={handleMapClick} />
 
           {markerPos && <Marker position={markerPos} icon={markerIcon} />}
           {regionBounds && (
             <Rectangle
               bounds={regionBounds}
-              pathOptions={{ color: "#0891b2", weight: 2, fillOpacity: 0.08 }}
+              pathOptions={drawMode ? GIS_REGION_DRAW_STYLE : GIS_REGION_STYLE}
             />
           )}
+          {result && overlayBounds && (
+            <Rectangle bounds={overlayBounds} pathOptions={GIS_ANALYSIS_BOUNDS_STYLE} />
+          )}
           {drawStart && (
-            <Marker
-              position={[drawStart.lat, drawStart.lng]}
-              icon={markerIcon}
-            />
+            <Marker position={[drawStart.lat, drawStart.lng]} icon={cornerIcon} />
           )}
 
           {result && overlayBounds && layers.waterStress && (
@@ -362,6 +376,19 @@ export default function WaterIntelligenceMap({
             )}
         </MapContainer>
 
+        <div
+          className={clsx(
+            "absolute z-[1000] flex flex-wrap gap-2 items-start",
+            minimized ? "top-1 left-1" : "top-3 left-3"
+          )}
+        >
+          <GisBasemapSwitcher
+            value={basemap}
+            onChange={setBasemap}
+            compact={minimized}
+          />
+        </div>
+
         {result && (
           <div
             className={clsx(
@@ -382,10 +409,10 @@ export default function WaterIntelligenceMap({
         )}
 
         {!minimized && (
-          <div className="absolute bottom-3 left-3 z-[1000] glass-panel px-3 py-2 text-xs text-eco-muted pointer-events-none">
+          <div className="absolute bottom-3 left-3 z-[1000] gis-map-hint px-3 py-2 text-xs pointer-events-none max-w-[280px]">
             <div className="flex items-center gap-2">
-              <MapPin className="w-3 h-3 text-cyan-600" />
-              Click, search, or draw a region · analysis runs automatically
+              <MapPin className="w-3 h-3 text-cyan-400 shrink-0" />
+              <span>Click, search, or draw · analysis runs automatically</span>
             </div>
           </div>
         )}

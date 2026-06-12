@@ -94,6 +94,43 @@ class DroughtForecast(BaseModel):
     outlook: str = "Stable"
     horizon_hours: int = 24
     summary: str = ""
+    severity: str = "Mild"
+    confidence: str = "medium"
+    precipitation_trend: str = ""
+    soil_moisture_outlook: str = ""
+
+
+class RainfallAnomalyAnalysis(BaseModel):
+    status: str
+    anomaly_pct: float
+    severity: str
+    trend: str
+    vs_typical_pct: float
+    forecast_rain_mm: float
+    summary: str
+
+
+class ReservoirChangeDetection(BaseModel):
+    direction: str
+    change_pct: float
+    storage_level_pct: float
+    severity: str
+    summary: str
+    alert: str
+
+
+class GroundwaterStressIndicator(BaseModel):
+    name: str
+    value: str
+    status: str
+
+
+class GroundwaterStressIndicators(BaseModel):
+    stress_level: str
+    stress_score: int = Field(..., ge=0, le=100)
+    recharge_outlook: str
+    summary: str
+    indicators: list[GroundwaterStressIndicator] = Field(default_factory=list)
 
 
 class ClimateAnomaly(BaseModel):
@@ -148,6 +185,9 @@ class WaterCrisisIntelligence(BaseModel):
     degradation_signals: list[str] = Field(default_factory=list)
     sustainability_insights: list[str] = Field(default_factory=list)
     global_stress_context: str = ""
+    rainfall_anomaly: Optional[RainfallAnomalyAnalysis] = None
+    reservoir_change: Optional[ReservoirChangeDetection] = None
+    groundwater_stress: Optional[GroundwaterStressIndicators] = None
 
 
 class EnvironmentalAnalysis(BaseModel):

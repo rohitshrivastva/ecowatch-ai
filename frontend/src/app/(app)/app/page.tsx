@@ -1,8 +1,9 @@
-import Dashboard from "@/components/Dashboard";
+import EnvironmentalDashboard from "@/components/platform/EnvironmentalDashboard";
 
 export const metadata = {
-  title: "Dashboard — EcoWatch AI",
-  description: "Environmental health overview, AI recommendations, and intelligence maps.",
+  title: "Dashboard — EcoWatch",
+  description:
+    "Environmental health score and unified overview of air, water, climate, and weather.",
 };
 
 export default async function AppDashboardPage({
@@ -11,5 +12,5 @@ export default async function AppDashboardPage({
   searchParams: Promise<{ demo?: string }>;
 }) {
   const params = await searchParams;
-  return <Dashboard forceDefaultLocation={params.demo === "1"} />;
+  return <EnvironmentalDashboard forceDefaultLocation={params.demo === "1"} />;
 }
