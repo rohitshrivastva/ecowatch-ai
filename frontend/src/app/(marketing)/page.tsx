@@ -1,6 +1,5 @@
 import Link from "next/link";
 import { ArrowRight, Leaf, Map, Sparkles, Shield } from "lucide-react";
-import { getAppUrl } from "@/lib/app-url";
 import Image from "next/image";
 
 const features = [
@@ -25,8 +24,6 @@ const features = [
 ];
 
 export default function MarketingPage() {
-  const appUrl = getAppUrl("/app");
-
   return (
     <div>
       <section className="relative overflow-hidden">
@@ -46,14 +43,14 @@ export default function MarketingPage() {
             </p>
             <div className="flex flex-wrap gap-4">
               <Link
-                href={appUrl}
+                href="/app"
                 className="inline-flex items-center gap-2 px-6 py-3.5 rounded-xl bg-eco-primary text-white font-semibold hover:bg-eco-primary/90 transition-all hover:shadow-lg hover:shadow-eco-primary/20"
               >
                 Open Dashboard
                 <ArrowRight className="w-4 h-4" />
               </Link>
               <Link
-                href={`${appUrl}?demo=1`}
+                href="/app?demo=1"
                 className="inline-flex items-center gap-2 px-6 py-3.5 rounded-xl border border-eco-border text-eco-text font-medium hover:border-eco-primary/50 transition-colors"
               >
                 Try live demo
@@ -103,7 +100,7 @@ export default function MarketingPage() {
           advanced analytics when you need them.
         </p>
         <Link
-          href={appUrl}
+          href="/app"
           className="inline-flex items-center gap-2 px-8 py-4 rounded-xl bg-eco-accent text-white font-semibold hover:opacity-90 transition-opacity"
         >
           Get started
