@@ -351,18 +351,23 @@ def _sustainability_insights(
     degradation: list[str],
     drought_summary: str,
 ) -> list[str]:
-    insights = list(recommendations[:2])
+    rec_set = {r.lower().strip() for r in recommendations}
+    insights: list[str] = []
     if degradation and degradation[0].startswith("No major"):
-        insights.append("Maintain green infrastructure to buffer future drought shocks.")
+        line = "Maintain green infrastructure to buffer future drought shocks."
+        if line.lower() not in rec_set:
+            insights.append(line)
     elif degradation:
-        insights.append(degradation[0])
+        line = degradation[0]
+        if line.lower() not in rec_set:
+            insights.append(line)
     if stress_level in (STRESS_HIGH, STRESS_CRITICAL):
-        insights.append(
+        line = (
             "Share water-use updates with your community to support collective climate awareness."
         )
-    else:
-        insights.append(drought_summary)
-    return insights[:4]
+        if line.lower() not in rec_set:
+            insights.append(line)
+    return insights[:2]
 
 
 def _build_indicators(

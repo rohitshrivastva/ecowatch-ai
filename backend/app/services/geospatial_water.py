@@ -13,6 +13,7 @@ import numpy as np
 
 from app.services.cache import cache_service
 from app.services.weather import weather_service
+from app.services.climate_risk import compute_regional_climate_risk
 
 OVERLAY_DIR = Path(__file__).resolve().parents[2] / "data" / "overlays"
 GRID_SIZE = 256
@@ -47,6 +48,17 @@ STRESS_COLORS = np.array(
         [251, 191, 36],
         [249, 115, 22],
         [185, 28, 28],
+    ],
+    dtype=np.uint8,
+)
+
+CLIMATE_RISK_COLORS = np.array(
+    [
+        [34, 197, 94],    # excellent - green
+        [163, 230, 53],   # low - lime
+        [250, 204, 21],   # moderate - yellow
+        [249, 115, 22],   # elevated - orange
+        [127, 29, 29],    # critical - dark red
     ],
     dtype=np.uint8,
 )
@@ -136,6 +148,27 @@ def _stress_from_indices(ndvi: np.ndarray, ndwi: np.ndarray) -> np.ndarray:
     veg_stress = np.clip((0.4 - ndvi) / 0.6, 0, 1)
     water_stress = np.clip((0.2 - ndwi) / 0.5, 0, 1)
     combined = 0.55 * water_stress + 0.45 * veg_stress
+    return combined * 2.0 - 1.0
+
+
+def _climate_risk_grid(
+    ndvi: np.ndarray,
+    ndwi: np.ndarray,
+    rainfall_deficit: float,
+    temp_anomaly: float,
+) -> np.ndarray:
+    """Per-pixel climate risk intensity mapped to [-1, 1] for colorization."""
+    veg_risk = np.clip((0.45 - ndvi) / 0.55, 0, 1)
+    water_risk = np.clip((0.25 - ndwi) / 0.45, 0, 1)
+    rain_factor = np.clip(rainfall_deficit / 100.0, 0, 1)
+    temp_factor = np.clip(max(0, temp_anomaly) / 8.0, 0, 1)
+    combined = (
+        0.25 * water_risk
+        + 0.20 * veg_risk
+        + 0.20 * veg_risk
+        + 0.15 * temp_factor
+        + 0.20 * (0.5 * rain_factor + 0.5 * water_risk)
+    )
     return combined * 2.0 - 1.0
 
 
@@ -316,38 +349,57 @@ class GeospatialWaterService:
         nir, red, green = _generate_synthetic_bands(normalized)
         ndvi, ndwi, _ = _process_with_rasterio(normalized, nir, red, green)
         stress = _stress_from_indices(ndvi, ndwi)
+        rainfall_deficit, temp_anomaly = await _fetch_climate_context(normalized)
+        climate_grid = _climate_risk_grid(
+            ndvi, ndwi, rainfall_deficit, temp_anomaly
+        )
 
         ndvi_rgba = _interp_colors(ndvi, NDVI_COLORS)
         ndwi_rgba = _interp_colors(ndwi, NDWI_COLORS)
         stress_rgba = _interp_colors(stress, STRESS_COLORS)
+        climate_rgba = _interp_colors(climate_grid, CLIMATE_RISK_COLORS)
 
         analysis_id = uuid.uuid4().hex[:12]
         ndvi_file = f"{analysis_id}_ndvi.png"
         ndwi_file = f"{analysis_id}_ndwi.png"
         stress_file = f"{analysis_id}_stress.png"
+        climate_file = f"{analysis_id}_climate.png"
 
         _save_png(ndvi_rgba, ndvi_file)
         _save_png(ndwi_rgba, ndwi_file)
         _save_png(stress_rgba, stress_file)
+        _save_png(climate_rgba, climate_file)
 
         ndvi_mean = float(np.nanmean(ndvi))
         ndwi_mean = float(np.nanmean(ndwi))
-        rainfall_deficit, temp_anomaly = await _fetch_climate_context(normalized)
         crisis_score = _water_crisis_score(
             ndvi_mean, ndwi_mean, rainfall_deficit, temp_anomaly
         )
         water_risk = _risk_level(crisis_score)
 
+        center_lat = (normalized[1] + normalized[3]) / 2
+        center_lon = (normalized[0] + normalized[2]) / 2
+        climate_data = compute_regional_climate_risk(
+            ndvi_mean,
+            ndwi_mean,
+            rainfall_deficit,
+            temp_anomaly,
+            center_lat,
+            center_lon,
+        )
+
         overlay_urls = {
             "ndvi": self.overlay_url(ndvi_file),
             "ndwi": self.overlay_url(ndwi_file),
             "waterStress": self.overlay_url(stress_file),
+            "climateRisk": self.overlay_url(climate_file),
         }
 
         layer_key = {
             "water": "waterStress",
             "ndvi": "ndvi",
             "ndwi": "ndwi",
+            "climate": "climateRisk",
         }.get(analysis_type, "waterStress")
 
         result = {
@@ -357,10 +409,16 @@ class GeospatialWaterService:
             "ndwiScore": round(ndwi_mean, 3),
             "waterRisk": water_risk,
             "waterCrisisScore": crisis_score,
+            "climateRiskScore": climate_data["score"],
+            "climateRiskCategory": climate_data["category"],
+            "climateRiskTrend": climate_data["trend"],
+            "climateRiskSummary": climate_data["summary"],
+            "climateRiskComponents": climate_data["components"],
             "bounds": list(normalized),
             "insights": _generate_insights(
                 ndvi_mean, ndwi_mean, water_risk, rainfall_deficit, temp_anomaly
             ),
+            "climateInsights": climate_data["insights"],
             "rainfallDeficitPct": rainfall_deficit,
             "temperatureAnomaly": temp_anomaly,
             "cached": False,

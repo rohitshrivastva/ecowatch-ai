@@ -33,6 +33,10 @@ async def test_analyze_by_coords(client):
     assert data["water_crisis"]["environmental_summary"]
     assert data["water_crisis"]["drought_forecast"]["outlook"]
     assert "climate_risk_level" in data["water_crisis"]
+    assert "climate_risk" in data
+    assert 0 <= data["climate_risk"]["score"] <= 100
+    assert data["climate_risk"]["category"]
+    assert len(data["climate_risk"]["components"]) == 5
     assert 0 <= data["risk"]["score"] <= 100
 
 

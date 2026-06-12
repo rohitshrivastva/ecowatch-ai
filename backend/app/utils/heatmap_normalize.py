@@ -93,3 +93,28 @@ def compute_environmental_risk(
     )
     raw_score = round(intensity * 100.0, 1)
     return intensity, raw_score
+
+
+def compute_climate_risk_intensity(
+    aqi: float,
+    temp: float,
+    ndvi: float,
+    humidity: float,
+    water_km: float = 15.0,
+) -> tuple[float, float]:
+    """Climate risk heatmap intensity aligned with scoring engine weights."""
+    aqi_n, _ = normalize_aqi(aqi)
+    temp_n, _ = normalize_temperature(temp)
+    veg_n, _ = normalize_ndvi(ndvi)
+    water_stress_n, _ = compute_water_stress(ndvi, humidity, temp, water_km)
+    stability_n = _clamp(humidity_factor(humidity) * 0.5 + (1.0 - veg_n) * 0.5)
+
+    intensity = _clamp(
+        0.20 * aqi_n
+        + 0.25 * water_stress_n
+        + 0.20 * (1.0 - veg_n)
+        + 0.15 * temp_n
+        + 0.20 * stability_n
+    )
+    raw_score = round(intensity * 100.0, 1)
+    return intensity, raw_score

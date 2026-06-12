@@ -104,6 +104,35 @@ export interface WaterCrisisIntelligence {
   global_stress_context?: string;
 }
 
+export interface ClimateRiskComponent {
+  name: string;
+  key: string;
+  score: number;
+  weight: number;
+  contribution: number;
+}
+
+export interface ClimateRiskHistorical {
+  current_year: number;
+  last_year: number;
+  five_year_avg: number;
+  ten_year_avg: number;
+  change_3yr: number;
+}
+
+export interface ClimateRiskIntelligence {
+  score: number;
+  category: string;
+  trend: string;
+  trend_change_3yr: number;
+  summary: string;
+  outdoor_safety: string;
+  outdoor_safety_score: number;
+  components: ClimateRiskComponent[];
+  historical: ClimateRiskHistorical;
+  insights: string[];
+}
+
 export interface EnvironmentalAnalysis {
   location_id?: number | null;
   location: Coordinates;
@@ -115,6 +144,7 @@ export interface EnvironmentalAnalysis {
   recommendations: Recommendation[];
   best_time_outside?: BestTimeOutside | null;
   water_crisis?: WaterCrisisIntelligence | null;
+  climate_risk?: ClimateRiskIntelligence | null;
   timestamp: string;
 }
 
