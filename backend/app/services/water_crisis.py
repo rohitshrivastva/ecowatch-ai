@@ -157,6 +157,10 @@ def _drought_forecast(forecast: dict[str, Any]) -> dict[str, Any]:
             "outlook": "Stable",
             "horizon_hours": len(slots) * 3,
             "summary": "Insufficient forecast data for drought trend analysis.",
+            "severity": "Mild",
+            "confidence": "low",
+            "precipitation_trend": "Unknown",
+            "soil_moisture_outlook": "Insufficient data",
         }
 
     mid = len(slots) // 2
@@ -167,23 +171,258 @@ def _drought_forecast(forecast: dict[str, Any]) -> dict[str, Any]:
 
     if delta <= -0.12:
         outlook = "Worsening"
+        severity = "Severe" if delta <= -0.25 else "Moderate"
         summary = (
             f"Drought conditions may intensify over the next {horizon}h "
             "as rain probability declines in the forecast."
         )
+        precip_trend = "Declining rain probability"
     elif delta >= 0.12:
         outlook = "Improving"
+        severity = "Mild"
         summary = (
             f"Rain chances improve over the next {horizon}h, "
             "which may relieve short-term water stress."
         )
+        precip_trend = "Increasing rain probability"
     else:
         outlook = "Stable"
+        severity = "Mild"
         summary = (
             f"Near-term drought signals remain steady over the next {horizon}h."
         )
+        precip_trend = "Steady precipitation outlook"
 
-    return {"outlook": outlook, "horizon_hours": horizon, "summary": summary}
+    confidence = "high" if len(slots) >= 6 else "medium"
+
+    return {
+        "outlook": outlook,
+        "horizon_hours": horizon,
+        "summary": summary,
+        "severity": severity,
+        "confidence": confidence,
+        "precipitation_trend": precip_trend,
+        "soil_moisture_outlook": "",
+    }
+
+
+def _enrich_drought_forecast(
+    drought_fc: dict[str, Any],
+    ndvi: float,
+    humidity: int,
+    mean_pop_pct: float,
+) -> dict[str, Any]:
+    if ndvi < 0.25 or humidity < 25:
+        soil = "Soil moisture likely depleted — recharge limited without rain."
+    elif ndvi < 0.35 or humidity < 40:
+        soil = "Soil moisture below optimal — monitor for further drying."
+    elif mean_pop_pct > 30:
+        soil = "Soil moisture may recover with forecast rainfall."
+    else:
+        soil = "Soil moisture stable but sensitive to evaporation."
+
+    enriched = dict(drought_fc)
+    enriched["soil_moisture_outlook"] = soil
+    if drought_fc["outlook"] == "Worsening" and ndvi < 0.3:
+        enriched["severity"] = "Severe"
+    return enriched
+
+
+def _rainfall_anomaly_analysis(
+    forecast: dict[str, Any],
+    mean_pop_pct: float,
+    deficit_pct: float,
+) -> dict[str, Any]:
+    slots = forecast.get("slots") or []
+    mid = max(1, len(slots) // 2)
+    early = (
+        sum(float(s.get("pop", 0)) for s in slots[:mid]) / mid if slots else 0.3
+    )
+    late = (
+        sum(float(s.get("pop", 0)) for s in slots[mid:]) / max(1, len(slots) - mid)
+        if slots
+        else 0.3
+    )
+    if late - early > 0.08:
+        trend = "Increasing"
+    elif late - early < -0.08:
+        trend = "Decreasing"
+    else:
+        trend = "Stable"
+
+    forecast_rain_mm = round(
+        sum(
+            float(s.get("rain_mm", 0) or float(s.get("pop", 0)) * 4.5)
+            for s in slots
+        ),
+        1,
+    )
+
+    if mean_pop_pct >= 38:
+        status = "Above Normal"
+    elif mean_pop_pct >= 22:
+        status = "Near Normal"
+    else:
+        status = "Below Normal"
+
+    if deficit_pct > 45:
+        severity = "high"
+    elif deficit_pct > 18:
+        severity = "moderate"
+    else:
+        severity = "low"
+
+    if status == "Below Normal":
+        summary = (
+            f"Rainfall is {deficit_pct:.0f}% below the short-term baseline "
+            f"({mean_pop_pct:.0f}% avg chance vs ~{RAIN_BASELINE_PCT:.0f}% typical)."
+        )
+    elif status == "Above Normal":
+        summary = (
+            f"Precipitation outlook is above typical ({mean_pop_pct:.0f}% avg rain chance)."
+        )
+    else:
+        summary = "Rainfall patterns are near seasonal expectations for the forecast window."
+
+    return {
+        "status": status,
+        "anomaly_pct": round(deficit_pct, 1),
+        "severity": severity,
+        "trend": trend,
+        "vs_typical_pct": round(mean_pop_pct - RAIN_BASELINE_PCT, 1),
+        "forecast_rain_mm": forecast_rain_mm,
+        "summary": summary,
+    }
+
+
+def _reservoir_change_detection(
+    ndvi: float,
+    mean_pop_pct: float,
+    water_km: float,
+    deficit_pct: float,
+    *,
+    ndwi: Optional[float] = None,
+) -> dict[str, Any]:
+    ndwi_est = ndwi if ndwi is not None else max(-0.1, min(0.45, 0.12 + ndvi * 0.35 - deficit_pct / 200))
+    storage_level = round(max(8.0, min(92.0, (ndwi_est + 0.2) * 140 + mean_pop_pct * 0.15)), 1)
+
+    if deficit_pct > 30 and ndvi < 0.3:
+        direction = "Declining"
+        change_pct = round(-min(22.0, 6.0 + deficit_pct * 0.25 + (0.35 - ndvi) * 20), 1)
+        severity = "high"
+        alert = "Monitor reservoir and lake levels — surface storage may be shrinking."
+    elif mean_pop_pct > 35 and ndvi >= 0.35:
+        direction = "Recovering"
+        change_pct = round(min(18.0, 4.0 + (mean_pop_pct - 30) * 0.3), 1)
+        severity = "low"
+        alert = "Surface water bodies may be replenishing with incoming rainfall."
+    else:
+        direction = "Stable"
+        change_pct = round((mean_pop_pct - RAIN_BASELINE_PCT) * 0.08, 1)
+        severity = "moderate" if storage_level < 35 else "low"
+        alert = "No significant reservoir drawdown detected in current signals."
+
+    if water_km > 40:
+        alert += " Nearest major surface water is distant — local storage is critical."
+
+    summary = (
+        f"Estimated surface storage at ~{storage_level:.0f}% of typical capacity. "
+        f"Trend: {direction.lower()} ({change_pct:+.1f}% vs recent baseline)."
+    )
+
+    return {
+        "direction": direction,
+        "change_pct": change_pct,
+        "storage_level_pct": storage_level,
+        "severity": severity,
+        "summary": summary,
+        "alert": alert.strip(),
+    }
+
+
+def _groundwater_stress_indicators(
+    ndvi: float,
+    humidity: int,
+    deficit_pct: float,
+    water_km: float,
+    temp: float,
+) -> dict[str, Any]:
+    score = 0
+    if deficit_pct > 35:
+        score += 28
+    elif deficit_pct > 15:
+        score += 14
+    if humidity < 25:
+        score += 22
+    elif humidity < 40:
+        score += 10
+    if ndvi < 0.25:
+        score += 20
+    elif ndvi < 0.35:
+        score += 10
+    if water_km > 35:
+        score += 12
+    if temp > 34:
+        score += 10
+    score = min(100, score)
+
+    if score <= 24:
+        stress_level = STRESS_LOW
+        recharge = "Favorable"
+    elif score <= 49:
+        stress_level = STRESS_MODERATE
+        recharge = "Moderate"
+    elif score <= 74:
+        stress_level = STRESS_HIGH
+        recharge = "Limited"
+    else:
+        stress_level = STRESS_CRITICAL
+        recharge = "Very limited"
+
+    def gw_status(val: float, good: float, warn: float) -> str:
+        if val <= good:
+            return "good"
+        if val <= warn:
+            return "moderate"
+        if val <= warn * 1.4:
+            return "warning"
+        return "critical"
+
+    indicators = [
+        {
+            "name": "Aquifer recharge",
+            "value": recharge,
+            "status": gw_status(deficit_pct, 10, 30),
+        },
+        {
+            "name": "Soil moisture",
+            "value": "Low" if ndvi < 0.28 else "Moderate" if ndvi < 0.4 else "Adequate",
+            "status": gw_status(0.45 - ndvi, 0.05, 0.18),
+        },
+        {
+            "name": "Deep water access",
+            "value": f"{water_km:.0f} km to surface source",
+            "status": gw_status(water_km, 20, 35),
+        },
+        {
+            "name": "Extraction pressure",
+            "value": "Elevated" if score > 55 else "Normal",
+            "status": gw_status(score, 35, 55),
+        },
+    ]
+
+    summary = (
+        f"Groundwater stress is {stress_level.lower()} (score {score}/100). "
+        f"Recharge outlook: {recharge.lower()}."
+    )
+
+    return {
+        "stress_level": stress_level,
+        "stress_score": score,
+        "recharge_outlook": recharge,
+        "summary": summary,
+        "indicators": indicators,
+    }
 
 
 def _detect_climate_anomalies(
@@ -487,6 +726,7 @@ def compute_water_crisis(
     lon: float = 0.0,
     risk: Optional[dict[str, Any]] = None,
     location_name: Optional[str] = None,
+    ndwi: Optional[float] = None,
 ) -> dict[str, Any]:
     ndvi = float(satellite.get("ndvi", 0.3))
     ndvi_label = str(satellite.get("ndvi_label", "Unknown"))
@@ -506,7 +746,9 @@ def compute_water_crisis(
     env_risk_score = _environmental_risk_score(water_score, risk)
     climate_risk = _climate_risk_level(env_risk_score)
 
-    drought_fc = _drought_forecast(forecast)
+    drought_fc = _enrich_drought_forecast(
+        _drought_forecast(forecast), ndvi, humidity, mean_pop_pct
+    )
     anomalies = _detect_climate_anomalies(lat, weather, satellite, mean_pop_pct)
     degradation = _degradation_signals(ndvi, green_pct, urban_heat, mean_pop_pct)
     recommendations = _build_recommendations(
@@ -535,4 +777,11 @@ def compute_water_crisis(
             stress, recommendations, degradation, drought_fc["summary"]
         ),
         "global_stress_context": _global_stress_context(stress, climate_risk),
+        "rainfall_anomaly": _rainfall_anomaly_analysis(forecast, mean_pop_pct, deficit_pct),
+        "reservoir_change": _reservoir_change_detection(
+            ndvi, mean_pop_pct, water_km, deficit_pct, ndwi=ndwi
+        ),
+        "groundwater_stress": _groundwater_stress_indicators(
+            ndvi, humidity, deficit_pct, water_km, temp
+        ),
     }

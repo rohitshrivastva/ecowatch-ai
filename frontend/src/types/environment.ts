@@ -77,6 +77,43 @@ export interface DroughtForecast {
   outlook: string;
   horizon_hours: number;
   summary: string;
+  severity?: string;
+  confidence?: string;
+  precipitation_trend?: string;
+  soil_moisture_outlook?: string;
+}
+
+export interface RainfallAnomalyAnalysis {
+  status: string;
+  anomaly_pct: number;
+  severity: string;
+  trend: string;
+  vs_typical_pct: number;
+  forecast_rain_mm: number;
+  summary: string;
+}
+
+export interface ReservoirChangeDetection {
+  direction: string;
+  change_pct: number;
+  storage_level_pct: number;
+  severity: string;
+  summary: string;
+  alert: string;
+}
+
+export interface GroundwaterStressIndicator {
+  name: string;
+  value: string;
+  status: "good" | "moderate" | "warning" | "critical";
+}
+
+export interface GroundwaterStressIndicators {
+  stress_level: string;
+  stress_score: number;
+  recharge_outlook: string;
+  summary: string;
+  indicators: GroundwaterStressIndicator[];
 }
 
 export interface WaterCrisisIndicator {
@@ -102,6 +139,9 @@ export interface WaterCrisisIntelligence {
   degradation_signals?: string[];
   sustainability_insights?: string[];
   global_stress_context?: string;
+  rainfall_anomaly?: RainfallAnomalyAnalysis | null;
+  reservoir_change?: ReservoirChangeDetection | null;
+  groundwater_stress?: GroundwaterStressIndicators | null;
 }
 
 export interface ClimateRiskComponent {

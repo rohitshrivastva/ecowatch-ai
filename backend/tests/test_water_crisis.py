@@ -59,6 +59,9 @@ def test_low_stress_stable_conditions():
     assert result["recommendations"]
     assert result["environmental_summary"]
     assert result["drought_forecast"]["outlook"] == "Stable"
+    assert result["rainfall_anomaly"]["status"]
+    assert result["reservoir_change"]["direction"]
+    assert result["groundwater_stress"]["stress_score"] >= 0
     assert result["environmental_risk_score"] >= 0
 
 
@@ -89,6 +92,21 @@ def test_drought_forecast_worsening():
         lon=78.0,
     )
     assert result["drought_forecast"]["outlook"] == "Worsening"
+
+
+def test_hydrology_modules_dry_conditions():
+    result = compute_water_crisis(
+        _forecast_slots(0.05),
+        _weather(humidity=18, temperature=36),
+        _satellite(ndvi=0.2, water_km=45, green_pct=15),
+        lat=28.6,
+        lon=77.2,
+        ndwi=0.05,
+    )
+    assert result["rainfall_anomaly"]["severity"] in ("moderate", "high")
+    assert result["reservoir_change"]["direction"] == "Declining"
+    assert result["groundwater_stress"]["stress_level"] in ("High", "Critical")
+    assert result["drought_forecast"]["soil_moisture_outlook"]
 
 
 def test_drought_forecast_improving():

@@ -5,7 +5,6 @@ import L from "leaflet";
 import type { LatLng, LatLngBounds } from "leaflet";
 import {
   MapContainer,
-  TileLayer,
   Marker,
   useMapEvents,
   useMap,
@@ -13,6 +12,17 @@ import {
 } from "react-leaflet";
 import { Search, MapPin, Square } from "lucide-react";
 import clsx from "clsx";
+import GisMapLayers from "@/components/map/GisMapLayers";
+import {
+  GisBasemapSwitcher,
+  GisCoordinateReadout,
+  GisScaleControl,
+} from "@/components/map/GisMapEnhancements";
+import {
+  createGisMarkerIcon,
+  GIS_REGION_STYLE,
+  type GisBasemapId,
+} from "@/lib/gis-map";
 import type { LocationSelection } from "@/types/environment";
 import type { HeatmapBounds, HeatmapPoint, HeatmapType } from "@/types/intelligence";
 import HeatmapLayer from "@/components/HeatmapLayer";
@@ -161,6 +171,8 @@ export default function InteractiveMap({
   const [drawStart, setDrawStart] = useState<LatLng | null>(null);
   const [drawBounds, setDrawBounds] = useState<LatLngBounds | null>(null);
   const [mapCenter, setMapCenter] = useState<[number, number]>(defaultCenter);
+  const isIqair = mapVariant === "iqair";
+  const [basemap, setBasemap] = useState<GisBasemapId>(isIqair ? "hybrid" : "terrain");
   const searchTimeout = useRef<NodeJS.Timeout>();
 
   useEffect(() => {
@@ -228,14 +240,7 @@ export default function InteractiveMap({
     }
   };
 
-  const markerIcon = L.divIcon({
-    className: "custom-marker",
-    html: `<div style="width:24px;height:24px;background:#10b981;border:3px solid white;border-radius:50%;box-shadow:0 0 12px rgba(16,185,129,0.6)"></div>`,
-    iconSize: [24, 24],
-    iconAnchor: [12, 12],
-  });
-
-  const isIqair = mapVariant === "iqair";
+  const markerIcon = createGisMarkerIcon(isIqair ? "eco" : "primary");
 
   return (
     <div
@@ -288,27 +293,23 @@ export default function InteractiveMap({
           "relative w-full",
           embedded
             ? isIqair
-              ? "h-full"
+              ? "h-full gis-map-vignette"
               : "h-[320px] lg:h-[480px]"
-            : "h-[320px] sm:h-[400px] lg:h-[480px]"
+            : "h-[320px] sm:h-[400px] lg:h-[480px]",
+          isIqair && "gis-map-vignette"
         )}
       >
         <MapContainer
           center={defaultCenter}
           zoom={5}
-          className="h-full w-full z-0"
+          className={clsx("h-full w-full z-0", isIqair && "gis-map")}
           zoomControl={isIqair}
         >
-          <TileLayer
-            attribution='&copy; <a href="https://carto.com/">CARTO</a>'
-            url={
-              isIqair
-                ? "https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png"
-                : "https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png"
-            }
-          />
+          <GisMapLayers basemap={basemap} />
           <MapController center={mapCenter} zoom={selectedLocation ? 10 : 5} />
           <MapInvalidateOnMount />
+          <GisScaleControl />
+          {isIqair && <GisCoordinateReadout />}
           <HeatmapCleanup enabled={heatmap.enabled} />
           <MapBoundsWatcher onBoundsChange={heatmap.onBoundsChange} />
           {heatmap.enabled && heatmap.renderPoints.length > 0 && (
@@ -337,12 +338,15 @@ export default function InteractiveMap({
             />
           )}
           {drawBounds && (
-            <Rectangle
-              bounds={drawBounds}
-              pathOptions={{ color: "#10b981", weight: 2, fillOpacity: 0.1 }}
-            />
+            <Rectangle bounds={drawBounds} pathOptions={GIS_REGION_STYLE} />
           )}
         </MapContainer>
+
+        {isIqair && (
+          <div className="absolute top-3 left-3 z-[1000]">
+            <GisBasemapSwitcher value={basemap} onChange={setBasemap} />
+          </div>
+        )}
 
         {heatmap.loading && heatmap.enabled && (
           <div className="absolute inset-0 z-[999] bg-white/50 flex items-center justify-center pointer-events-none">
@@ -403,8 +407,8 @@ export default function InteractiveMap({
 
         {isIqair && (
           <>
-            <div className="absolute top-3 right-3 z-[1000] rounded-lg bg-white/95 backdrop-blur-sm px-3 py-1.5 text-xs font-semibold text-slate-700 shadow-md pointer-events-none">
-              EcoWatch Map
+            <div className="absolute top-3 right-3 z-[1000] rounded-lg bg-slate-900/80 backdrop-blur-sm px-3 py-1.5 text-xs font-semibold text-slate-100 shadow-md pointer-events-none border border-slate-700/50">
+              EcoWatch GIS
             </div>
             <div className="absolute bottom-3 right-14 z-[1000] pointer-events-auto">
               <button

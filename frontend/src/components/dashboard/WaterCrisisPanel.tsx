@@ -58,10 +58,12 @@ function overlaps(a: string, b: string): boolean {
 function WaterCrisisPanel({
   data,
   showTitle = true,
+  hideDroughtForecast = false,
 }: {
   data: WaterCrisisIntelligence;
   compact?: boolean;
   showTitle?: boolean;
+  hideDroughtForecast?: boolean;
 }) {
   const outlook = data.drought_forecast?.outlook ?? "Stable";
   const stressStyle = STRESS_STYLES[data.stress_level] ?? STRESS_STYLES.Moderate;
@@ -212,7 +214,7 @@ function WaterCrisisPanel({
       )}
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 mb-5">
-        {data.drought_forecast && (
+        {data.drought_forecast && !hideDroughtForecast && (
           <div className="rounded-xl border border-slate-200 bg-white px-4 py-3">
             <div className="flex items-center justify-between gap-2 mb-2">
               <div className="flex items-center gap-2 text-sm font-semibold text-slate-800">
