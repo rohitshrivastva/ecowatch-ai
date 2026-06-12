@@ -2,6 +2,13 @@ from ipaddress import ip_address
 from typing import Optional, Union
 import httpx
 
+DEFAULT_LOCATION: dict[str, Union[float, str]] = {
+    "latitude": 28.6139,
+    "longitude": 77.209,
+    "name": "New Delhi, India",
+    "source": "default",
+}
+
 
 def is_public_ip(ip: str) -> bool:
     try:

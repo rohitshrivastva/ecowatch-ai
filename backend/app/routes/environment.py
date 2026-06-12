@@ -10,7 +10,7 @@ from app.models.schemas import (
     LocationRequest,
 )
 from app.services.analysis import analysis_service
-from app.services.geo import client_ip_from_headers, lookup_ip
+from app.services.geo import DEFAULT_LOCATION, client_ip_from_headers, is_public_ip, lookup_ip
 
 router = APIRouter(prefix="/api/v1", tags=["environment"])
 
@@ -22,14 +22,12 @@ async def geo_me(request: Request):
         request.headers.get("X-Forwarded-For"),
         request.client.host if request.client else None,
     )
-    if not ip:
-        raise HTTPException(status_code=404, detail="Could not determine location")
+    if ip and is_public_ip(ip):
+        location = await lookup_ip(ip)
+        if location:
+            return GeoLocationResponse(**location)
 
-    location = await lookup_ip(ip)
-    if not location:
-        raise HTTPException(status_code=404, detail="Could not determine location")
-
-    return GeoLocationResponse(**location)
+    return GeoLocationResponse(**DEFAULT_LOCATION)
 
 
 @router.get("/health", response_model=HealthResponse)

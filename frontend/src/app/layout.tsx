@@ -6,6 +6,13 @@ export const metadata: Metadata = {
   title: "EcoWatch AI — Environmental Health Intelligence",
   description:
     "AI-powered environmental intelligence for air quality, vegetation, and localized recommendations.",
+  icons: {
+    icon: [
+      { url: "/favicon.ico", sizes: "32x32" },
+      { url: "/favicon.svg", type: "image/svg+xml" },
+    ],
+    apple: "/favicon.svg",
+  },
 };
 
 export default function RootLayout({

@@ -4,9 +4,14 @@ import pytest
 
 
 @pytest.mark.asyncio
-async def test_geo_me_private_ip_returns_404(client):
+async def test_geo_me_private_ip_returns_default(client):
     response = await client.get("/api/v1/geo/me")
-    assert response.status_code == 404
+    assert response.status_code == 200
+    data = response.json()
+    assert data["source"] == "default"
+    assert data["latitude"] == 28.6139
+    assert data["longitude"] == 77.209
+    assert "name" in data
 
 
 @pytest.mark.asyncio
